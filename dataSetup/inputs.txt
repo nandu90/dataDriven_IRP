@@ -1,0 +1,24 @@
+# Varts File processing related inputs
+inistep 5500
+laststep 6600
+nPHASTAprobes 9024
+nrun 1
+nprobes 8880
+nsteps 100
+
+# Geometry related
+pitch 0.0063
+rrod 0.00457
+
+# Turbulence Related
+Re 11000
+Um 15.772
+rho 0.914482
+mu 17.0141E-6
+
+# Processing related
+legacyPlot 1
+plttype 1d
+extract 1
+nhom 80
+nplot 3
