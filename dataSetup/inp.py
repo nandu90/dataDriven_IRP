@@ -90,3 +90,11 @@ try:
     print('out dir created')
 except FileExistsError:
     print('out dir exists')
+
+if(legacyPlot == 1):
+    try:
+        os.mkdir(cwd+'/legacyData')
+        os.mkdir(cwd+'/legacyData/plots')
+        print('legacy dir created')
+    except FileExistsError:
+        print('legacy dir exists')

@@ -71,6 +71,7 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata):
     plt.rc('lines', linewidth=1)
     plt.rc('axes', prop_cycle=default_cycler)
     
+    fname = inp.cwd+'/legacyData/plots/'+fname
 
     if(inp.plttype == '3d'):
         fname = fname+'3d'
@@ -97,7 +98,7 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata):
     if(inp.plttype == '1d'):     
         ax.grid()
         ax.legend(loc='best',fontsize=15)
-    fig.savefig('multi'+fname+'_yplus.png',quality=100,\
+    fig.savefig(fname+'_yplus.png',quality=100,\
                 bbox_inches='tight',dpi=500)
 
     return
@@ -271,5 +272,14 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     #     for i in range(dw.shape[1]):
     #         f.write('%.6e %.6e %.6e %.6e %.6e\n'%(dw[0][i],udw[0][i],vdw[0][i],wdw[0][i],TKE[0][i]))
 
+    for ipln in range(dw.shape[0]):
+        fname = inp.cwd+'/legacyData/velExtracts_plane_'+str(plns[ipln])+'.csv'
+        stack = np.column_stack((dw[ipln],udw[ipln],vdw[ipln],wdw[ipln],\
+                Rstress[ipln,0,:],Rstress[ipln,1,:],Rstress[ipln,2,:],\
+                Rstress[ipln,3,:],Rstress[ipln,4,:],Rstress[ipln,5,:]),\
+                TKE[ipln])
+        head = 'dwall,<u>,<v>,<w>,<u\'u\'>,<v\'v\'>,<w\'w\'>,'
+        head = head + '<u\'v\'>,<u\'w\'>,<v\'w\'>,TKE'
+        np.savetxt(fname,stack,header=head,delimiter=',')
     
     return
