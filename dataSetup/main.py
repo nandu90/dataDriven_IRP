@@ -24,7 +24,7 @@ def main():
     for tstep in range(inp.inistep, inp.laststep+inp.nsteps, inp.nsteps):
         istepindex = tstep-inp.inistep
         lstepindex = istepindex+inp.nsteps
-        fname =inp.cwd+'/varts/varts.'+str(tstep)+'.run.8.dat'
+        fname =inp.cwd+'/newvarts/varts.'+str(tstep)+'.run.1.dat'
         probedata[istepindex:lstepindex,:,:] = funcs.readvarts(fname)
 
         #        if(tstep == inp.inistep):
@@ -38,6 +38,12 @@ def main():
     x = np.average(probedata[:,:,inp.nvar-3], axis=0)
     y = np.average(probedata[:,:,inp.nvar-2], axis=0)
     z = np.average(probedata[:,:,inp.nvar-1], axis=0)
+    dwall = np.sqrt(np.power(np.abs(y)-inp.pitch,2) + \
+                    np.power(np.abs(z)-inp.pitch,2))-inp.rrod
+    fname = inp.cwd+'/output/probeCoord.csv'
+    np.savetxt(fname,np.column_stack((x,y,z,dwall)),\
+               delimiter=',',header='x,y,z,dwall')
+    print('Saved probe coordinates')
     
     #    Identify the number of planes
     xplns, plnindices, plncount = np.unique(x,return_inverse=True,return_counts=True)
@@ -55,19 +61,40 @@ def main():
         vmean = funcs.getmean(probedata[:,:,2], probedata[:,:,0])
         wmean = funcs.getmean(probedata[:,:,3], probedata[:,:,0])
         print('Extracted Mean Velocities')
-    
-        # # Extract instantaneous velocities
-        # uprime = np.subtract(probedata[:,:,1],umean)
-        # vprime = np.subtract(probedata[:,:,2],vmean)
-        # wprime = np.subtract(probedata[:,:,3],wmean)
-        # print('Extracted Instantaneous velocities')
+        fname = inp.cwd+'/output/velMean.csv'
+        np.savetxt(fname,np.column_stack((umean,vmean,wmean,)),\
+                   delimiter=',',header='<u>,<v>,<w>')
+        print('Saved Mean Velocities')
 
-    if(inp.legacyPlot == 1):
-        print('Legacy Plots Requested')
-        legacyplots.extractPlots(plnindices,xplns,y,z,probedata,\
-                                 umean,vmean,wmean)
+        if(inp.legacyPlot == 1):
+            print('Legacy Plots Requested')
+            legacyplots.extractPlots(plnindices,xplns,y,z,probedata,\
+                                     umean,vmean,wmean)
+
+        uprime = probedata[:,:,1] - umean
+        vprime = probedata[:,:,2] - vmean
+        wprime = probedata[:,:,3] - wmean
+        print('Calculated fluctuating component of velocity')
         
+        Rstress = np.zeros((inp.nprobes,6))
+        Rstress[:,0] = funcs.getmean(uprime*uprime,probedata[:,:,0])
+        Rstress[:,1] = funcs.getmean(vprime*vprime,probedata[:,:,0])
+        Rstress[:,2] = funcs.getmean(wprime*wprime,probedata[:,:,0])
+        Rstress[:,3] = funcs.getmean(uprime*vprime,probedata[:,:,0])
+        Rstress[:,4] = funcs.getmean(uprime*wprime,probedata[:,:,0])
+        Rstress[:,5] = funcs.getmean(vprime*wprime,probedata[:,:,0])
+        print('Extracted Reynolds Stresses')
 
+        fname = inp.cwd+'/output/RStress.csv'
+        np.savetxt(fname,np.column_stack((Rstress[:,0],Rstress[:,1],\
+        Rstress[:,2],Rstress[:,3],\
+        Rstress[:,4],Rstress[:,5])),delimiter=',',\
+        header='<u\'u\'>,<v\'v\'>,<w\'w\'>,<u\'v\'>,<u\'w\'>,<v\'w\'>')
+        print('Saved Reynolds Stresses')
+
+    return
+        
+        
 if __name__ == "__main__":
     start_time = time.time()
     main()

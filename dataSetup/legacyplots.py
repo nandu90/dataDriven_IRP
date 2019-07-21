@@ -266,11 +266,10 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     plotMultiPlane('Rxn','$R_{xn}$',xplns,plns,dw,Rstress[:,3,:]/math.pow(inp.utau,2))
     plotMultiPlane('Rxt','$R_{xt}$',xplns,plns,dw,Rstress[:,4,:]/math.pow(inp.utau,2))
     plotMultiPlane('Rnt','$R_{nt}$',xplns,plns,dw,Rstress[:,5,:]/math.pow(inp.utau,2))
-    # dwclass = extractMultiPlane(plns,plnindices,xplns,\
-    #         y,z,'Vmean','$V^+$',vmean/inp.utau,dwclass)
-
-    # dwclass = extractMultiPlane(plns,plnindices,xplns,\
-    #         y,z,'Wmean','$W^+$',wmean/inp.utau,dwclass)
+    
+    # with open('compare.txt','w') as f:
+    #     for i in range(dw.shape[1]):
+    #         f.write('%.6e %.6e %.6e %.6e %.6e\n'%(dw[0][i],udw[0][i],vdw[0][i],wdw[0][i],TKE[0][i]))
 
     
     return

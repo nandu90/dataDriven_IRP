@@ -83,3 +83,10 @@ nvar += 4
 print(tempstr+"Number of variables = ",nvar)
 
 totalsteps = laststep-inistep+nsteps
+
+# Create output dir
+try:
+    os.mkdir(cwd+'/output')
+    print('out dir created')
+except FileExistsError:
+    print('out dir exists')
