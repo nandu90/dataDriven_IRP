@@ -62,7 +62,7 @@ def extractPlane(plnindex,plnindices,data,y,z,fname,ylabel):
     return
 
 
-def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata):
+def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata,axistype=0):
         
     default_cycler = (cycler(marker=['.','+','v','^','<','>'])*\
                       cycler(color=['b', 'r', 'k', 'm','g']) * \
@@ -93,13 +93,20 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata):
         if(inp.plttype == '3d'):
             ax.plot(xdummy,yplus,dwdata[ipln],label=strlabel)
         else:
-            ax.semilogx(yplus,dwdata[ipln],label = strlabel)
+            if(axistype == 0):
+                ax.semilogx(yplus,dwdata[ipln],label = strlabel)
+            elif(axistype == 1):
+                ax.plot(yplus,dwdata[ipln],label=strlabel)
         
     if(inp.plttype == '1d'):     
         ax.grid()
         ax.legend(loc='best',fontsize=15)
-    fig.savefig(fname+'_yplus.png',quality=100,\
-                bbox_inches='tight',dpi=500)
+    if(axistype == 0):
+        fig.savefig(fname+'_yplus.png',quality=100,\
+                    bbox_inches='tight',dpi=500)
+    elif(axistype == 1):
+        fig.savefig(fname+'.png',quality=100,\
+                    bbox_inches='tight',dpi=500)
 
     return
 
@@ -158,10 +165,6 @@ def getdwclass(yplane, zplane):
 def extractfluct(probedata,plnmask,dwclass,udw,vdw,wdw): 
     
     nclass = np.amax(dwclass)
-    
-    udw = np.array(udw)
-    vdw = np.array(vdw)
-    wdw = np.array(wdw)
 
     um = np.zeros(dwclass.shape[0])
     vm = np.zeros(dwclass.shape[0])
@@ -178,9 +181,9 @@ def extractfluct(probedata,plnmask,dwclass,udw,vdw,wdw):
     dt = np.zeros((inp.totalsteps,dwclass.shape[0]))
     
     for istep in range(inp.totalsteps):
-        uplane = probedata[istep,:,1][plnmask]
-        vplane = probedata[istep,:,2][plnmask]
-        wplane = probedata[istep,:,3][plnmask]
+        uplane = probedata[istep,:,4][plnmask]
+        vplane = probedata[istep,:,5][plnmask]
+        wplane = probedata[istep,:,6][plnmask]
         tplane = probedata[istep,:,0][plnmask]
         
         uprime[istep,:] = np.subtract(uplane,um)
@@ -276,10 +279,214 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
         fname = inp.cwd+'/legacyData/velExtracts_plane_'+str(plns[ipln])+'.csv'
         stack = np.column_stack((dw[ipln],udw[ipln],vdw[ipln],wdw[ipln],\
                 Rstress[ipln,0,:],Rstress[ipln,1,:],Rstress[ipln,2,:],\
-                Rstress[ipln,3,:],Rstress[ipln,4,:],Rstress[ipln,5,:]),\
-                TKE[ipln])
+                Rstress[ipln,3,:],Rstress[ipln,4,:],Rstress[ipln,5,:],\
+                TKE[ipln]))
         head = 'dwall,<u>,<v>,<w>,<u\'u\'>,<v\'v\'>,<w\'w\'>,'
         head = head + '<u\'v\'>,<u\'w\'>,<v\'w\'>,TKE'
         np.savetxt(fname,stack,header=head,delimiter=',')
     
+    return
+
+
+def extractgradfluct(probedata,plnmask,dwclass,\
+                     dudx,dvdx,dwdx,\
+                     dudy,dvdy,dwdy,\
+                     dudz,dvdz,dwdz,\
+                     dpdx,dpdy,dpdz):
+    nclass = np.amax(dwclass)
+    
+    gradm = np.zeros((dwclass.shape[0],9))
+    gradmp = np.zeros((dwclass.shape[0],3))
+
+    for iclass in range(nclass):
+        gradm[:,0]=np.where(dwclass==iclass+1,dudx[iclass],gradm[:,0])
+        gradm[:,1]=np.where(dwclass==iclass+1,dvdx[iclass],gradm[:,1])
+        gradm[:,2]=np.where(dwclass==iclass+1,dwdx[iclass],gradm[:,2])
+
+        gradm[:,3]=np.where(dwclass==iclass+1,dudy[iclass],gradm[:,3])
+        gradm[:,4]=np.where(dwclass==iclass+1,dvdy[iclass],gradm[:,4])
+        gradm[:,5]=np.where(dwclass==iclass+1,dwdy[iclass],gradm[:,5])
+        
+        gradm[:,6]=np.where(dwclass==iclass+1,dudz[iclass],gradm[:,6])
+        gradm[:,7]=np.where(dwclass==iclass+1,dvdz[iclass],gradm[:,7])
+        gradm[:,8]=np.where(dwclass==iclass+1,dwdz[iclass],gradm[:,8])
+
+        gradmp[:,0]=np.where(dwclass==iclass+1,dpdx[iclass],gradmp[:,0])
+        gradmp[:,1]=np.where(dwclass==iclass+1,dpdy[iclass],gradmp[:,1])
+        gradmp[:,2]=np.where(dwclass==iclass+1,dpdz[iclass],gradmp[:,2])
+
+    gradprime = np.zeros((inp.totalsteps,dwclass.shape[0],9))
+    pgradprime = np.zeros((inp.totalsteps,dwclass.shape[0],3))
+    dt = np.zeros((inp.totalsteps,dwclass.shape[0]))
+
+    for istep in range(inp.totalsteps):
+        for i in range(9):
+            gradplane = probedata[istep,:,i+4][plnmask]
+            gradprime[istep,:,i] = np.subtract(gradplane,gradm[:,i])
+        for i in range(3):
+            pgradplane = probedata[istep,:,i+13][plnmask]
+            pgradprime[istep,:,i]=np.subtract(pgradplane,gradmp[:,i])
+        
+        tplane = probedata[istep,:,0][plnmask]
+        dt[istep,:] = tplane
+
+    return gradprime, pgradprime, dt
+
+def extractstrain(gradprime, dt, dwclass):
+
+    nclass = np.amax(dwclass)
+
+    s11 = 0.5*(gradprime[:,:,0]+gradprime[:,:,0])
+    s22 = 0.5*(gradprime[:,:,4]+gradprime[:,:,4])
+    s33 = 0.5*(gradprime[:,:,8]+gradprime[:,:,8])
+    s12 = 0.5*(gradprime[:,:,3]+gradprime[:,:,1])
+    s13 = 0.5*(gradprime[:,:,6]+gradprime[:,:,2])
+    s23 = 0.5*(gradprime[:,:,7]+gradprime[:,:,5])
+
+    s11t = np.sum(s11*dt,axis=0)
+    s22t = np.sum(s22*dt,axis=0)
+    s33t = np.sum(s33*dt,axis=0)
+    s12t = np.sum(s12*dt,axis=0)
+    s13t = np.sum(s13*dt,axis=0)
+    s23t = np.sum(s23*dt,axis=0)
+
+    nu = inp.mu/inp.rho
+    epst = np.sum((s11*s11+s12*s12+s13*s13+\
+                   s12*s12+s22*s22+s23*s23+\
+                   s13*s13+s23*s23+s33*s33)*dt,axis=0)*2.0*nu
+
+    # epst = (s11t*s11t+s22t*s22t+s33t*s33t+\
+    #         s12t*s12t+s13t*s13t+s23t*s23t)*2.0*nu
+
+    Dt = np.sum(dt,axis=0)
+
+    dissipation = np.zeros(nclass)
+    strainprime = np.zeros((6,nclass))
+    for iclass in range(nclass):
+        dwmask = np.where(dwclass == iclass+1,True,False)
+        Deltat = np.sum(Dt[dwmask])
+        dissipation[iclass] = np.sum(epst[dwmask])/Deltat
+        
+        strainprime[0,iclass] = np.sum(s11t[dwmask])/Deltat
+        strainprime[1,iclass] = np.sum(s22t[dwmask])/Deltat
+        strainprime[2,iclass] = np.sum(s33t[dwmask])/Deltat
+        strainprime[3,iclass] = np.sum(s12t[dwmask])/Deltat
+        strainprime[4,iclass] = np.sum(s13t[dwmask])/Deltat
+        strainprime[5,iclass] = np.sum(s23t[dwmask])/Deltat
+    
+    return strainprime, dissipation
+
+def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
+
+    plns = list(range(0,xplns.shape[0],int(xplns.shape[0]/inp.nplot)))
+    dw = [[] for i in range(len(plns))]
+    
+    dudx = [[] for i in range(len(plns))]
+    dvdx = [[] for i in range(len(plns))]
+    dwdx = [[] for i in range(len(plns))]
+
+    dudy = [[] for i in range(len(plns))]
+    dvdy = [[] for i in range(len(plns))]
+    dwdy = [[] for i in range(len(plns))]
+
+    dudz = [[] for i in range(len(plns))]
+    dvdz = [[] for i in range(len(plns))]
+    dwdz = [[] for i in range(len(plns))]
+
+    dpdx = [[] for i in range(len(plns))]
+    dpdy = [[] for i in range(len(plns))]
+    dpdz = [[] for i in range(len(plns))]
+
+    strainprime = [[] for i in range(len(plns))]
+    dissipation = [[] for i in range(len(plns))]
+    production = [[] for i in range(len(plns))]
+
+    print("Planes being processed: ",plns)
+    for ipln in range(len(plns)):
+        plnmask = np.where(plnindices == plns[ipln],True, False)
+        yplane = y[plnmask]
+        zplane = z[plnmask]
+        
+        dwclass, dw[ipln] = getdw(yplane,zplane)
+        print("Synchronized Plane %i with legacy xyzts"%(plns[ipln]))
+
+        dudx[ipln] = extractMean(dwclass,plnmask,gradmean[:,0])
+        dvdx[ipln] = extractMean(dwclass,plnmask,gradmean[:,1])
+        dwdx[ipln] = extractMean(dwclass,plnmask,gradmean[:,2])
+
+        dudy[ipln] = extractMean(dwclass,plnmask,gradmean[:,3])
+        dvdy[ipln] = extractMean(dwclass,plnmask,gradmean[:,4])
+        dwdy[ipln] = extractMean(dwclass,plnmask,gradmean[:,5])
+
+        dudz[ipln] = extractMean(dwclass,plnmask,gradmean[:,6])
+        dvdz[ipln] = extractMean(dwclass,plnmask,gradmean[:,7])
+        dwdz[ipln] = extractMean(dwclass,plnmask,gradmean[:,8])
+
+        dpdx[ipln] = extractMean(dwclass,plnmask,gradpmean[:,0])
+        dpdy[ipln] = extractMean(dwclass,plnmask,gradpmean[:,1])
+        dpdz[ipln] = extractMean(dwclass,plnmask,gradpmean[:,2])
+        
+        gradprime, pgradprime, dt = extractgradfluct(probedata,\
+                            plnmask,dwclass,\
+                            dudx[ipln],dvdx[ipln],dwdx[ipln],\
+                            dudy[ipln],dvdy[ipln],dwdy[ipln],\
+                            dudz[ipln],dvdz[ipln],dwdz[ipln],\
+                            dpdx[ipln],dpdy[ipln],dpdz[ipln])
+
+        strainprime[ipln], dissipation[ipln] = extractstrain(\
+                                    gradprime, dt, dwclass)
+
+    dw = np.array(dw)
+    dissipation = np.array(dissipation)
+    strainprime = np.array(strainprime)
+    Sxx = np.array(dudx)
+    Snn = np.array(dvdy)
+    Stt = np.array(dwdz)
+    Sxn = 0.5*(np.array(dudy)+np.array(dvdx))
+    Sxt = 0.5*(np.array(dudz)+np.array(dwdx))
+    Snt = 0.5*(np.array(dvdz)+np.array(dwdy))
+
+    print('Creating Plots Now')
+    plotMultiPlane('dissipation','${\epsilon}(m^2/s^3)$',\
+                   xplns,plns,dw,dissipation)
+
+    plotMultiPlane('Sxx','${Sxx}(s^{-1})$',\
+                   xplns,plns,dw,Sxx)
+    plotMultiPlane('Snn','${Snn}(s^{-1})$',\
+                   xplns,plns,dw,Snn)
+    plotMultiPlane('Stt','${Stt}(s^{-1})$',\
+                   xplns,plns,dw,Stt)
+    plotMultiPlane('Sxn','${Sxn}(s^{-1})$',\
+                   xplns,plns,dw,Sxn)
+    plotMultiPlane('Sxt','${Sxt}(s^{-1})$',\
+                   xplns,plns,dw,Sxt)
+    plotMultiPlane('Snt','${Snt}(s^{-1})$',\
+                   xplns,plns,dw,Snt)
+   
+
+
+    # Read the Reynolds stressed to get the production term
+    production = np.zeros((dw.shape[0],dw.shape[1]))
+    Rstress = np.zeros((dw.shape[0],dw.shape[1],6))
+    for ipln in range(dw.shape[0]):
+        fname = inp.cwd+'/legacyData/velExtracts_plane_'+str(plns[ipln])+'.csv'
+        temp = np.loadtxt(fname,delimiter=',',skiprows=1)
+        Rstress[ipln,:,:] = temp[:,4:10]
+        
+    production += Rstress[:,:,0]*np.array(dudx)
+    production += Rstress[:,:,1]*np.array(dvdy)
+    production += Rstress[:,:,2]*np.array(dwdz)
+    production += Rstress[:,:,3]*np.array(dudy)
+    production += Rstress[:,:,3]*np.array(dvdx)
+    production += Rstress[:,:,4]*np.array(dudz)
+    production += Rstress[:,:,4]*np.array(dwdx)
+    production += Rstress[:,:,5]*np.array(dvdz)
+    production += Rstress[:,:,5]*np.array(dwdy)
+
+    production = -production
+
+    plotMultiPlane('production','${P}(m^2/s^3)$',\
+                   xplns,plns,dw,production)
+    plotMultiPlane('prod_eps','${P/\epsilon}$',\
+                   xplns,plns,dw,production/dissipation,1)
     return

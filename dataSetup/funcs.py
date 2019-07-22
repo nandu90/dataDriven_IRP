@@ -22,8 +22,13 @@ def readvarts(fname):
         for iprobe in range(inp.nprobes):
             if(inp.extract == 1):
                 probedata[istep,iprobe,0] = readata[istep,iprobe,4]
-                probedata[istep,iprobe,1:4] = readata[istep,iprobe,1:4]
-                probedata[istep,iprobe,4:7] = readata[istep,iprobe,25:28]
+                probedata[istep,iprobe,1:4] = readata[istep,iprobe,25:28]
+                probedata[istep,iprobe,4:7] = readata[istep,iprobe,1:4]
+            elif(inp.extract == 2):
+                probedata[istep,iprobe,0]=readata[istep,iprobe,4]
+                probedata[istep,iprobe,1:4]=readata[istep,iprobe,25:28]
+                probedata[istep,iprobe,4:13]=readata[istep,iprobe,6:15]
+                probedata[istep,iprobe,13:16]=readata[istep,iprobe,15:18]
     return probedata
 
 
@@ -68,14 +73,23 @@ def coordRotation(y, z, v, w):
 
 
 def rotateVectors(probedata):
-    y = probedata[:,:,inp.nvar-2]
-    z = probedata[:,:,inp.nvar-1]
+    y = probedata[:,:,2]
+    z = probedata[:,:,3]
 
     #    Velocities
     if(inp.extract == 1):
-        probedata[:,:,2], probedata[:,:,3] = coordRotation(y, z,\
-                    probedata[:,:,2], probedata[:,:,3])
-
+        probedata[:,:,5], probedata[:,:,6] = coordRotation(y, z,\
+                                probedata[:,:,5], probedata[:,:,6])
+    elif(inp.extract == 2):
+        probedata[:,:,7], probedata[:,:,10] = coordRotation(y, z,\
+                                probedata[:,:,7], probedata[:,:,10])
+        probedata[:,:,8], probedata[:,:,11] = coordRotation(y, z,\
+                                probedata[:,:,8], probedata[:,:,11])
+        probedata[:,:,9], probedata[:,:,12] = coordRotation(y, z,\
+                                probedata[:,:,9], probedata[:,:,12])
+        
+        probedata[:,:,14], probedata[:,:,15] = coordRotation(y, z,\
+                                probedata[:,:,14], probedata[:,:,15])
     return probedata
 
 

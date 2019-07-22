@@ -78,6 +78,8 @@ utau = math.sqrt(tauw/rho)
 #    Velocities (TKE, Mean stresses, Reynolds Stresses)
 if(extract == 1):
     nvar = 3
+elif(extract == 2):
+    nvar = 12
 #    Coordinates and time
 nvar += 4
 print(tempstr+"Number of variables = ",nvar)
