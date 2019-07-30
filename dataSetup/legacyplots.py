@@ -376,6 +376,57 @@ def extractstrain(gradprime, dt, dwclass):
     
     return strainprime, dissipation
 
+def extractDissipationTensor(gradprime, dt, dwclass):
+
+    nclass = np.amax(dwclass)
+    
+    d11 = gradprime[:,:,0]*gradprime[:,:,0]+\
+          gradprime[:,:,3]*gradprime[:,:,3]+\
+          gradprime[:,:,6]*gradprime[:,:,6]
+    d22 = gradprime[:,:,1]*gradprime[:,:,1]+\
+          gradprime[:,:,4]*gradprime[:,:,4]+\
+          gradprime[:,:,7]*gradprime[:,:,7]
+    d33 = gradprime[:,:,2]*gradprime[:,:,2]+\
+          gradprime[:,:,5]*gradprime[:,:,5]+\
+          gradprime[:,:,8]*gradprime[:,:,8]
+    d12 = gradprime[:,:,0]*gradprime[:,:,1]+\
+          gradprime[:,:,3]*gradprime[:,:,4]+\
+          gradprime[:,:,6]*gradprime[:,:,7]
+    d13 = gradprime[:,:,0]*gradprime[:,:,2]+\
+          gradprime[:,:,3]*gradprime[:,:,5]+\
+          gradprime[:,:,6]*gradprime[:,:,8]
+    d23 = gradprime[:,:,1]*gradprime[:,:,2]+\
+          gradprime[:,:,4]*gradprime[:,:,5]+\
+          gradprime[:,:,7]*gradprime[:,:,8]
+
+    d11t = np.sum(d11*dt,axis=0)
+    d22t = np.sum(d22*dt,axis=0)
+    d33t = np.sum(d33*dt,axis=0)
+    d12t = np.sum(d12*dt,axis=0)
+    d13t = np.sum(d13*dt,axis=0)
+    d23t = np.sum(d23*dt,axis=0)
+
+    nu = inp.mu/inp.rho
+
+    Dt = np.sum(dt,axis=0)
+
+    dissipation = np.zeros((6,nclass))
+    for iclass in range(nclass):
+        dwmask = np.where(dwclass == iclass+1,True,False)
+        Deltat = np.sum(Dt[dwmask])
+
+        dissipation[0,iclass] = np.sum(d11t[dwmask])/Deltat
+        dissipation[1,iclass] = np.sum(d22t[dwmask])/Deltat
+        dissipation[2,iclass] = np.sum(d33t[dwmask])/Deltat
+        dissipation[3,iclass] = np.sum(d12t[dwmask])/Deltat
+        dissipation[4,iclass] = np.sum(d13t[dwmask])/Deltat
+        dissipation[5,iclass] = np.sum(d23t[dwmask])/Deltat
+
+    dissipation = 2.0*nu*dissipation
+
+    return dissipation
+    
+
 def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
 
     plns = list(range(0,xplns.shape[0],int(xplns.shape[0]/inp.nplot)))
@@ -400,6 +451,8 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
     strainprime = [[] for i in range(len(plns))]
     dissipation = [[] for i in range(len(plns))]
     production = [[] for i in range(len(plns))]
+
+    disstensor = [[] for i in range(len(plns))]
 
     print("Planes being processed: ",plns)
     for ipln in range(len(plns)):
@@ -434,7 +487,9 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
                             dpdx[ipln],dpdy[ipln],dpdz[ipln])
 
         strainprime[ipln], dissipation[ipln] = extractstrain(\
-                                    gradprime, dt, dwclass)
+                                     gradprime, dt, dwclass)
+        disstensor[ipln] = extractDissipationTensor(gradprime,\
+                        dt, dwclass)
 
     dw = np.array(dw)
     dissipation = np.array(dissipation)
@@ -445,6 +500,7 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
     Sxn = 0.5*(np.array(dudy)+np.array(dvdx))
     Sxt = 0.5*(np.array(dudz)+np.array(dwdx))
     Snt = 0.5*(np.array(dvdz)+np.array(dwdy))
+    disstensor = np.array(disstensor)
 
     print('Creating Plots Now')
     plotMultiPlane('dissipation','${\epsilon}(m^2/s^3)$',\
@@ -463,6 +519,10 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
     plotMultiPlane('Snt','${Snt}(s^{-1})$',\
                    xplns,plns,dw,Snt)
    
+    plotMultiPlane('newdiss','${\epsilon}(m^2/s^3)$',\
+                   xplns,plns,dw,\
+                   0.5*(disstensor[:,0,:]+disstensor[:,1,:]\
+                        +disstensor[:,2,:]))
 
 
     # Read the Reynolds stressed to get the production term
@@ -486,7 +546,7 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
     production = -production
 
     plotMultiPlane('production','${P}(m^2/s^3)$',\
-                   xplns,plns,dw,production)
+                   xplns,plns,dw,production,1)
     plotMultiPlane('prod_eps','${P/\epsilon}$',\
                    xplns,plns,dw,production/dissipation,1)
     return
