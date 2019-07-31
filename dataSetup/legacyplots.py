@@ -425,9 +425,64 @@ def extractDissipationTensor(gradprime, dt, dwclass):
     dissipation = 2.0*nu*dissipation
 
     return dissipation
-    
 
-def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
+
+def extractProductionTensor(dwclass, Rstress,gradmean,plnmask):
+
+    nclass = np.amax(dwclass)
+
+    dudx = gradmean[:,0][plnmask]
+    dvdx = gradmean[:,1][plnmask]
+    dwdx = gradmean[:,2][plnmask]
+
+    dudy = gradmean[:,3][plnmask]
+    dvdy = gradmean[:,4][plnmask]
+    dwdy = gradmean[:,5][plnmask]
+
+    dudz = gradmean[:,6][plnmask]
+    dvdz = gradmean[:,7][plnmask]
+    dwdz = gradmean[:,8][plnmask]
+
+    p11 = -(Rstress[:,0]*dudx+Rstress[:,0]*dudx+\
+            Rstress[:,3]*dudy+Rstress[:,3]*dudy+\
+            Rstress[:,4]*dudz+Rstress[:,4]*dudz)
+
+    p22 = -(Rstress[:,3]*dvdx+Rstress[:,3]*dvdx+\
+            Rstress[:,1]*dvdy+Rstress[:,1]*dvdy+\
+            Rstress[:,5]*dvdz+Rstress[:,5]*dvdz)
+
+    p33 = -(Rstress[:,4]*dwdx+Rstress[:,4]*dwdx+\
+            Rstress[:,5]*dwdy+Rstress[:,5]*dwdy+\
+            Rstress[:,2]*dwdz+Rstress[:,2]*dwdz)
+
+    p12 = -(Rstress[:,0]*dvdx+Rstress[:,3]*dudx+\
+            Rstress[:,3]*dvdy+Rstress[:,2]*dudy+\
+            Rstress[:,4]*dvdz+Rstress[:,5]*dudz)
+
+    p13 = -(Rstress[:,0]*dwdx+Rstress[:,4]*dudx+\
+            Rstress[:,3]*dwdy+Rstress[:,5]*dudy+\
+            Rstress[:,4]*dwdz+Rstress[:,2]*dudz)
+
+    p23 = -(Rstress[:,3]*dwdx+Rstress[:,4]*dvdx+\
+            Rstress[:,2]*dwdy+Rstress[:,5]*dvdy+\
+            Rstress[:,5]*dwdz+Rstress[:,2]*dvdz)
+
+    production = np.zeros((6,nclass))
+    for iclass in range(nclass):
+        dwmask = np.where(dwclass == iclass+1,True,False)
+        
+        production[0,iclass] = np.mean(p11[dwmask])
+        production[1,iclass] = np.mean(p22[dwmask])
+        production[2,iclass] = np.mean(p33[dwmask])
+        production[3,iclass] = np.mean(p12[dwmask])
+        production[4,iclass] = np.mean(p13[dwmask])
+        production[5,iclass] = np.mean(p23[dwmask])
+
+        
+    return production
+
+
+def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
 
     plns = list(range(0,xplns.shape[0],int(xplns.shape[0]/inp.nplot)))
     dw = [[] for i in range(len(plns))]
@@ -453,12 +508,14 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
     production = [[] for i in range(len(plns))]
 
     disstensor = [[] for i in range(len(plns))]
+    prodtensor = [[] for i in range(len(plns))]
 
     print("Planes being processed: ",plns)
     for ipln in range(len(plns)):
         plnmask = np.where(plnindices == plns[ipln],True, False)
         yplane = y[plnmask]
         zplane = z[plnmask]
+        Rstresspln = Rstress[plnmask]
         
         dwclass, dw[ipln] = getdw(yplane,zplane)
         print("Synchronized Plane %i with legacy xyzts"%(plns[ipln]))
@@ -490,7 +547,9 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
                                      gradprime, dt, dwclass)
         disstensor[ipln] = extractDissipationTensor(gradprime,\
                         dt, dwclass)
-
+        prodtensor[ipln] = extractProductionTensor(dwclass,\
+                        Rstresspln,gradmean,plnmask)
+        
     dw = np.array(dw)
     dissipation = np.array(dissipation)
     strainprime = np.array(strainprime)
@@ -501,10 +560,11 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
     Sxt = 0.5*(np.array(dudz)+np.array(dwdx))
     Snt = 0.5*(np.array(dvdz)+np.array(dwdy))
     disstensor = np.array(disstensor)
+    prodtensor = np.array(prodtensor)
 
     print('Creating Plots Now')
-    plotMultiPlane('dissipation','${\epsilon}(m^2/s^3)$',\
-                   xplns,plns,dw,dissipation)
+    # plotMultiPlane('dissipation','${\epsilon}(m^2/s^3)$',\
+    #                xplns,plns,dw,dissipation,1)
 
     plotMultiPlane('Sxx','${Sxx}(s^{-1})$',\
                    xplns,plns,dw,Sxx)
@@ -522,31 +582,40 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean):
     plotMultiPlane('newdiss','${\epsilon}(m^2/s^3)$',\
                    xplns,plns,dw,\
                    0.5*(disstensor[:,0,:]+disstensor[:,1,:]\
-                        +disstensor[:,2,:]))
+                        +disstensor[:,2,:]),1)
 
+    plotMultiPlane('newprod','${P}(m^2/s^3)$',\
+                   xplns,plns,dw,\
+                   0.5*(prodtensor[:,0,:]+prodtensor[:,1,:]\
+                        +prodtensor[:,2,:]),1)
 
-    # Read the Reynolds stressed to get the production term
-    production = np.zeros((dw.shape[0],dw.shape[1]))
-    Rstress = np.zeros((dw.shape[0],dw.shape[1],6))
-    for ipln in range(dw.shape[0]):
-        fname = inp.cwd+'/legacyData/velExtracts_plane_'+str(plns[ipln])+'.csv'
-        temp = np.loadtxt(fname,delimiter=',',skiprows=1)
-        Rstress[ipln,:,:] = temp[:,4:10]
+    # # Read the Reynolds stressed to get the production term
+    # production = np.zeros((dw.shape[0],dw.shape[1]))
+    # Rstress = np.zeros((dw.shape[0],dw.shape[1],6))
+    # for ipln in range(dw.shape[0]):
+    #     fname = inp.cwd+'/legacyData/velExtracts_plane_'+str(plns[ipln])+'.csv'
+    #     temp = np.loadtxt(fname,delimiter=',',skiprows=1)
+    #     Rstress[ipln,:,:] = temp[:,4:10]
         
-    production += Rstress[:,:,0]*np.array(dudx)
-    production += Rstress[:,:,1]*np.array(dvdy)
-    production += Rstress[:,:,2]*np.array(dwdz)
-    production += Rstress[:,:,3]*np.array(dudy)
-    production += Rstress[:,:,3]*np.array(dvdx)
-    production += Rstress[:,:,4]*np.array(dudz)
-    production += Rstress[:,:,4]*np.array(dwdx)
-    production += Rstress[:,:,5]*np.array(dvdz)
-    production += Rstress[:,:,5]*np.array(dwdy)
+    # production += Rstress[:,:,0]*np.array(dudx)
+    # production += Rstress[:,:,1]*np.array(dvdy)
+    # production += Rstress[:,:,2]*np.array(dwdz)
+    # production += Rstress[:,:,3]*np.array(dudy)
+    # production += Rstress[:,:,3]*np.array(dvdx)
+    # production += Rstress[:,:,4]*np.array(dudz)
+    # production += Rstress[:,:,4]*np.array(dwdx)
+    # production += Rstress[:,:,5]*np.array(dvdz)
+    # production += Rstress[:,:,5]*np.array(dwdy)
 
-    production = -production
+    # production = -production
 
-    plotMultiPlane('production','${P}(m^2/s^3)$',\
-                   xplns,plns,dw,production,1)
-    plotMultiPlane('prod_eps','${P/\epsilon}$',\
-                   xplns,plns,dw,production/dissipation,1)
+    # plotMultiPlane('production','${P}(m^2/s^3)$',\
+    #                xplns,plns,dw,production,1)
+    # plotMultiPlane('prod_eps','${P/\epsilon}$',\
+    #                xplns,plns,dw,production/dissipation,1)
+
+    plotMultiPlane('new_prod_eps','${P/\epsilon}$',\
+                   xplns,plns,dw,\
+    (0.5*(prodtensor[:,0,:]+prodtensor[:,1,:]+prodtensor[:,2,:]))/\
+    (0.5*(disstensor[:,0,:]+disstensor[:,1,:]+disstensor[:,2,:])),1)
     return

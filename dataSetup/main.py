@@ -71,30 +71,35 @@ def main():
             print('Legacy Plots Requested')
             legacyplots.extractPlots(plnindices,xplns,y,z,probedata,\
                                      umean,vmean,wmean)
-        else:
-            uprime = probedata[:,:,4] - umean
-            vprime = probedata[:,:,5] - vmean
-            wprime = probedata[:,:,6] - wmean
-            print('Calculated fluctuating component of velocity')
         
-            Rstress = np.zeros((inp.nprobes,6))
-            Rstress[:,0] = funcs.getmean(uprime*uprime,probedata[:,:,0])
-            Rstress[:,1] = funcs.getmean(vprime*vprime,probedata[:,:,0])
-            Rstress[:,2] = funcs.getmean(wprime*wprime,probedata[:,:,0])
-            Rstress[:,3] = funcs.getmean(uprime*vprime,probedata[:,:,0])
-            Rstress[:,4] = funcs.getmean(uprime*wprime,probedata[:,:,0])
-            Rstress[:,5] = funcs.getmean(vprime*wprime,probedata[:,:,0])
-            print('Extracted Reynolds Stresses')
+        uprime = probedata[:,:,4] - umean
+        vprime = probedata[:,:,5] - vmean
+        wprime = probedata[:,:,6] - wmean
+        print('Calculated fluctuating component of velocity')
+        
+        Rstress = np.zeros((inp.nprobes,6))
+        Rstress[:,0] = funcs.getmean(uprime*uprime,probedata[:,:,0])
+        Rstress[:,1] = funcs.getmean(vprime*vprime,probedata[:,:,0])
+        Rstress[:,2] = funcs.getmean(wprime*wprime,probedata[:,:,0])
+        Rstress[:,3] = funcs.getmean(uprime*vprime,probedata[:,:,0])
+        Rstress[:,4] = funcs.getmean(uprime*wprime,probedata[:,:,0])
+        Rstress[:,5] = funcs.getmean(vprime*wprime,probedata[:,:,0])
+        print('Extracted Reynolds Stresses')
 
-            fname = inp.cwd+'/output/RStress.csv'
-            head = '<u\'u\'>,<v\'v\'>,<w\'w\'>,<u\'v\'>,<u\'w\'>,<v\'w\'>'
-            np.savetxt(fname,np.column_stack((Rstress[:,0],Rstress[:,1],\
-                    Rstress[:,2],Rstress[:,3],\
-                    Rstress[:,4],Rstress[:,5])),delimiter=',',\
-                    header=head)
-            print('Saved Reynolds Stresses')
+        fname = inp.cwd+'/output/RStress.csv'
+        head = '<u\'u\'>,<v\'v\'>,<w\'w\'>,<u\'v\'>,<u\'w\'>,<v\'w\'>'
+        np.savetxt(fname,np.column_stack((Rstress[:,0],Rstress[:,1],\
+                        Rstress[:,2],Rstress[:,3],\
+                        Rstress[:,4],Rstress[:,5])),delimiter=',',\
+                header=head)
+        print('Saved Reynolds Stresses')
 
     elif(inp.extract == 2):
+        # Read the already extracted Reynolds Stresses
+        Rstress = np.zeros((inp.nprobes,6))
+        fname = inp.cwd+'/output/RStress.csv'
+        Rstress = np.loadtxt(fname,delimiter=',',skiprows=1)
+                
         gradmean = np.zeros((inp.nprobes,9))
         for i in range(9):
             gradmean[:,i] = funcs.getmean(probedata[:,:,i+4],\
@@ -109,7 +114,7 @@ def main():
         if(inp.legacyPlot == 1):
             print('Extracting Data in Legacy Format')
             legacyplots.extractGrads(plnindices,xplns,y,z,probedata,\
-                                     gradmean,gradpmean)
+                                     gradmean,gradpmean,Rstress)
     return
         
         
