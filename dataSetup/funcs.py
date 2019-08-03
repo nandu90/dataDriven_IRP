@@ -29,6 +29,7 @@ def readvarts(fname):
                 probedata[istep,iprobe,1:4]=readata[istep,iprobe,25:28]
                 probedata[istep,iprobe,4:13]=readata[istep,iprobe,6:15]
                 probedata[istep,iprobe,13:16]=readata[istep,iprobe,15:18]
+                probedata[istep,iprobe,16] = readata[istep,iprobe,0]
     return probedata
 
 

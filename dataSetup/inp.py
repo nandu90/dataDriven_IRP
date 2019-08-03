@@ -32,6 +32,7 @@ nsteps = int(inp.get('nsteps',100))
 
 pitch = float(inp.get('pitch',0.0063))
 rrod = float(inp.get('rrod',0.00457))
+Dh = float(inp.get('Dh',0.013))
 
 Re = float(inp.get('Re',1000))
 Um = float(inp.get('Um',1))
@@ -79,7 +80,7 @@ utau = math.sqrt(tauw/rho)
 if(extract == 1):
     nvar = 3
 elif(extract == 2):
-    nvar = 12
+    nvar = 13
 #    Coordinates and time
 nvar += 4
 print(tempstr+"Number of variables = ",nvar)

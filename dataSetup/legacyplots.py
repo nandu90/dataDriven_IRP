@@ -259,17 +259,17 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     Rstress = np.array(Rstress)
     
     print("Creating (Legacy) Plots Now")
-    plotMultiPlane('Umean','$U^+$',xplns,plns,dw,udw/inp.utau)
-    plotMultiPlane('Vmean','$V^+$',xplns,plns,dw,vdw/inp.utau)
-    plotMultiPlane('Wmean','$W^+$',xplns,plns,dw,wdw/inp.utau)
-    plotMultiPlane('TKE','$TKE (m^2/s^2)$',xplns,plns,dw,TKE)
+    plotMultiPlane('Umean','$U^+$',xplns,plns,dw,udw/inp.utau,1)
+    plotMultiPlane('Vmean','$V^+$',xplns,plns,dw,vdw/inp.utau,1)
+    plotMultiPlane('Wmean','$W^+$',xplns,plns,dw,wdw/inp.utau,1)
+    plotMultiPlane('TKE','$TKE (m^2/s^2)$',xplns,plns,dw,TKE,1)
 
-    plotMultiPlane('Rxx','$R_{xx}$',xplns,plns,dw,Rstress[:,0,:]/math.pow(inp.utau,2))
-    plotMultiPlane('Rnn','$R_{nn}$',xplns,plns,dw,Rstress[:,1,:]/math.pow(inp.utau,2))
-    plotMultiPlane('Rtt','$R_{tt}$',xplns,plns,dw,Rstress[:,2,:]/math.pow(inp.utau,2))
-    plotMultiPlane('Rxn','$R_{xn}$',xplns,plns,dw,Rstress[:,3,:]/math.pow(inp.utau,2))
-    plotMultiPlane('Rxt','$R_{xt}$',xplns,plns,dw,Rstress[:,4,:]/math.pow(inp.utau,2))
-    plotMultiPlane('Rnt','$R_{nt}$',xplns,plns,dw,Rstress[:,5,:]/math.pow(inp.utau,2))
+    plotMultiPlane('Rxx','$R_{xx}$',xplns,plns,dw,Rstress[:,0,:]/math.pow(inp.utau,2),1)
+    plotMultiPlane('Rnn','$R_{nn}$',xplns,plns,dw,Rstress[:,1,:]/math.pow(inp.utau,2),1)
+    plotMultiPlane('Rtt','$R_{tt}$',xplns,plns,dw,Rstress[:,2,:]/math.pow(inp.utau,2),1)
+    plotMultiPlane('Rxn','$R_{xn}$',xplns,plns,dw,Rstress[:,3,:]/math.pow(inp.utau,2),1)
+    plotMultiPlane('Rxt','$R_{xt}$',xplns,plns,dw,Rstress[:,4,:]/math.pow(inp.utau,2),1)
+    plotMultiPlane('Rnt','$R_{nt}$',xplns,plns,dw,Rstress[:,5,:]/math.pow(inp.utau,2),1)
     
     # with open('compare.txt','w') as f:
     #     for i in range(dw.shape[1]):
@@ -288,7 +288,7 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     return
 
 
-def extractgradfluct(probedata,plnmask,dwclass,\
+def extractgradfluct(probedata,plnmask,dwclass,press,\
                      dudx,dvdx,dwdx,\
                      dudy,dvdy,dwdy,\
                      dudz,dvdz,dwdz,\
@@ -297,6 +297,7 @@ def extractgradfluct(probedata,plnmask,dwclass,\
     
     gradm = np.zeros((dwclass.shape[0],9))
     gradmp = np.zeros((dwclass.shape[0],3))
+    pressm = np.zeros((dwclass.shape[0]))
 
     for iclass in range(nclass):
         gradm[:,0]=np.where(dwclass==iclass+1,dudx[iclass],gradm[:,0])
@@ -314,10 +315,12 @@ def extractgradfluct(probedata,plnmask,dwclass,\
         gradmp[:,0]=np.where(dwclass==iclass+1,dpdx[iclass],gradmp[:,0])
         gradmp[:,1]=np.where(dwclass==iclass+1,dpdy[iclass],gradmp[:,1])
         gradmp[:,2]=np.where(dwclass==iclass+1,dpdz[iclass],gradmp[:,2])
+        pressm=np.where(dwclass==iclass+1,press[iclass],pressm)
 
     gradprime = np.zeros((inp.totalsteps,dwclass.shape[0],9))
     pgradprime = np.zeros((inp.totalsteps,dwclass.shape[0],3))
     dt = np.zeros((inp.totalsteps,dwclass.shape[0]))
+    pressprime = np.zeros((inp.totalsteps,dwclass.shape[0]))
 
     for istep in range(inp.totalsteps):
         for i in range(9):
@@ -326,11 +329,14 @@ def extractgradfluct(probedata,plnmask,dwclass,\
         for i in range(3):
             pgradplane = probedata[istep,:,i+13][plnmask]
             pgradprime[istep,:,i]=np.subtract(pgradplane,gradmp[:,i])
-        
+
+        presspln = probedata[istep,:,16][plnmask]
+        pressprime[istep,:] = np.subtract(presspln,pressm)
+
         tplane = probedata[istep,:,0][plnmask]
         dt[istep,:] = tplane
 
-    return gradprime, pgradprime, dt
+    return gradprime, pgradprime, pressprime, dt
 
 def extractstrain(gradprime, dt, dwclass):
 
@@ -481,8 +487,42 @@ def extractProductionTensor(dwclass, Rstress,gradmean,plnmask):
         
     return production
 
+def extractPressTensor(dwclass, pressprime, gradprime, dt):
+    
+    nclass = np.amax(dwclass)
 
-def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
+    R11 = (gradprime[:,:,0]+gradprime[:,:,0])*pressprime/inp.rho
+    R22 = (gradprime[:,:,4]+gradprime[:,:,4])*pressprime/inp.rho
+    R33 = (gradprime[:,:,8]+gradprime[:,:,8])*pressprime/inp.rho
+    R12 = (gradprime[:,:,3]+gradprime[:,:,1])*pressprime/inp.rho
+    R13 = (gradprime[:,:,6]+gradprime[:,:,2])*pressprime/inp.rho
+    R23 = (gradprime[:,:,7]+gradprime[:,:,5])*pressprime/inp.rho
+
+    R11t = np.sum(R11*dt,axis=0)
+    R22t = np.sum(R22*dt,axis=0)
+    R33t = np.sum(R33*dt,axis=0)
+    R12t = np.sum(R12*dt,axis=0)
+    R13t = np.sum(R13*dt,axis=0)
+    R23t = np.sum(R23*dt,axis=0)
+
+    Dt = np.sum(dt,axis=0)
+
+    pressStrainTensor = np.zeros((6,nclass))
+    for iclass in range(nclass):
+        dwmask = np.where(dwclass == iclass+1,True,False)
+        Deltat = np.sum(Dt[dwmask])
+        
+        pressStrainTensor[0,iclass] = np.sum(R11t[dwmask])/Deltat
+        pressStrainTensor[1,iclass] = np.sum(R22t[dwmask])/Deltat
+        pressStrainTensor[2,iclass] = np.sum(R33t[dwmask])/Deltat
+        pressStrainTensor[3,iclass] = np.sum(R12t[dwmask])/Deltat
+        pressStrainTensor[4,iclass] = np.sum(R13t[dwmask])/Deltat
+        pressStrainTensor[5,iclass] = np.sum(R23t[dwmask])/Deltat
+
+    return pressStrainTensor
+
+def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
+                 gradpmean,pmean,Rstress):
 
     plns = list(range(0,xplns.shape[0],int(xplns.shape[0]/inp.nplot)))
     dw = [[] for i in range(len(plns))]
@@ -509,6 +549,7 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
 
     disstensor = [[] for i in range(len(plns))]
     prodtensor = [[] for i in range(len(plns))]
+    pressStrainTensor = [[] for i in range(len(plns))]
 
     print("Planes being processed: ",plns)
     for ipln in range(len(plns)):
@@ -535,9 +576,11 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
         dpdx[ipln] = extractMean(dwclass,plnmask,gradpmean[:,0])
         dpdy[ipln] = extractMean(dwclass,plnmask,gradpmean[:,1])
         dpdz[ipln] = extractMean(dwclass,plnmask,gradpmean[:,2])
+
+        pdw = extractMean(dwclass,plnmask,pmean)
         
-        gradprime, pgradprime, dt = extractgradfluct(probedata,\
-                            plnmask,dwclass,\
+        gradprime, pgradprime, pressprime, dt = extractgradfluct(\
+                            probedata,plnmask,dwclass,pdw,\
                             dudx[ipln],dvdx[ipln],dwdx[ipln],\
                             dudy[ipln],dvdy[ipln],dwdy[ipln],\
                             dudz[ipln],dvdz[ipln],dwdz[ipln],\
@@ -549,6 +592,8 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
                         dt, dwclass)
         prodtensor[ipln] = extractProductionTensor(dwclass,\
                         Rstresspln,gradmean,plnmask)
+        pressStrainTensor[ipln] = extractPressTensor(dwclass,\
+                        pressprime, gradprime, dt)
         
     dw = np.array(dw)
     dissipation = np.array(dissipation)
@@ -561,6 +606,7 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
     Snt = 0.5*(np.array(dvdz)+np.array(dwdy))
     disstensor = np.array(disstensor)
     prodtensor = np.array(prodtensor)
+    pressStrainTensor = np.array(pressStrainTensor)
 
     print('Creating Plots Now')
     # plotMultiPlane('dissipation','${\epsilon}(m^2/s^3)$',\
@@ -579,15 +625,23 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
     plotMultiPlane('Snt','${Snt}(s^{-1})$',\
                    xplns,plns,dw,Snt)
    
-    plotMultiPlane('newdiss','${\epsilon}(m^2/s^3)$',\
+    plotMultiPlane('newdiss','${\epsilon}$',\
                    xplns,plns,dw,\
                    0.5*(disstensor[:,0,:]+disstensor[:,1,:]\
-                        +disstensor[:,2,:]),1)
+                        +disstensor[:,2,:])/(math.pow(inp.utau,4)/\
+                        (inp.mu/inp.rho)),1)
 
-    plotMultiPlane('newprod','${P}(m^2/s^3)$',\
+    plotMultiPlane('newprod','${P}$',\
                    xplns,plns,dw,\
                    0.5*(prodtensor[:,0,:]+prodtensor[:,1,:]\
-                        +prodtensor[:,2,:]),1)
+                        +prodtensor[:,2,:])/(math.pow(inp.utau,4)/\
+                        (inp.mu/inp.rho)),1)
+
+    plotMultiPlane('pressStrain','${P}$',\
+                   xplns,plns,dw,\
+                   0.5*(pressStrainTensor[:,0,:]+pressStrainTensor[:,1,:]\
+                        +pressStrainTensor[:,2,:])/(math.pow(inp.utau,4)/\
+                        (inp.mu/inp.rho)),1)
 
     # # Read the Reynolds stressed to get the production term
     # production = np.zeros((dw.shape[0],dw.shape[1]))
@@ -618,4 +672,26 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,gradpmean,Rstress):
                    xplns,plns,dw,\
     (0.5*(prodtensor[:,0,:]+prodtensor[:,1,:]+prodtensor[:,2,:]))/\
     (0.5*(disstensor[:,0,:]+disstensor[:,1,:]+disstensor[:,2,:])),1)
+
+
+    for ipln in range(dw.shape[0]):
+        fname = inp.cwd+'/legacyData/gradExtracts_plane_'+str(plns[ipln])+'.csv'
+        stack = np.column_stack((dw[ipln],Sxx[ipln],Snn[ipln],Stt[ipln],\
+                Sxn[ipln],Sxt[ipln],Snt[ipln],\
+                disstensor[ipln,0,:],disstensor[ipln,1,:],\
+                disstensor[ipln,2,:],disstensor[ipln,3,:],\
+                disstensor[ipln,4,:],disstensor[ipln,5,:],\
+                prodtensor[ipln,0,:],prodtensor[ipln,1,:],\
+                prodtensor[ipln,2,:],prodtensor[ipln,3,:],\
+                prodtensor[ipln,4,:],prodtensor[ipln,5,:],\
+                pressStrainTensor[ipln,0,:],pressStrainTensor[ipln,1,:],\
+                pressStrainTensor[ipln,2,:],pressStrainTensor[ipln,3,:],\
+                pressStrainTensor[ipln,4,:],pressStrainTensor[ipln,5,:]))
+
+        head = 'dwall,Sxx,Snn,Stt,Sxn,Sxt,Snt'
+        head = head+',eps_xx,eps_nn,eps_tt,eps_xn,eps_xt,eps_nt'
+        head = head+',P_xx,P_nn,P_tt,P_xn,P_xt,P_nt'
+        head = head+',R_xx,R_nn,R_tt,R_xn,R_xt,R_nt'
+        np.savetxt(fname,stack,header=head,delimiter=',')
+
     return

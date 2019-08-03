@@ -1,9 +1,9 @@
 # Varts File processing related inputs
 inistep 5500
-laststep 6600
-nPHASTAprobes 9024
-nrun 1
-nprobes 8880
+laststep 7400
+nPHASTAprobes 85052
+nrun 8
+nprobes 84908
 nsteps 100
 
 # Geometry related
@@ -21,4 +21,4 @@ legacyPlot 1
 plttype 1d
 extract 1
 nhom 80
-nplot 3
+nplot 1

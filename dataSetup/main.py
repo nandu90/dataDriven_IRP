@@ -100,6 +100,8 @@ def main():
         fname = inp.cwd+'/output/RStress.csv'
         Rstress = np.loadtxt(fname,delimiter=',',skiprows=1)
                 
+        pmean = funcs.getmean(probedata[:,:,16], probedata[:,:,0])
+
         gradmean = np.zeros((inp.nprobes,9))
         for i in range(9):
             gradmean[:,i] = funcs.getmean(probedata[:,:,i+4],\
@@ -114,7 +116,7 @@ def main():
         if(inp.legacyPlot == 1):
             print('Extracting Data in Legacy Format')
             legacyplots.extractGrads(plnindices,xplns,y,z,probedata,\
-                                     gradmean,gradpmean,Rstress)
+                                     gradmean,gradpmean,pmean,Rstress)
     return
         
         
