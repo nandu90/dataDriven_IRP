@@ -101,6 +101,7 @@ def main():
         Rstress = np.loadtxt(fname,delimiter=',',skiprows=1)
                 
         pmean = funcs.getmean(probedata[:,:,16], probedata[:,:,0])
+        pprime = probedata[:,:,16] - pmean
 
         gradmean = np.zeros((inp.nprobes,9))
         for i in range(9):

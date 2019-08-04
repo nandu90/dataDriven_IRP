@@ -490,7 +490,7 @@ def extractProductionTensor(dwclass, Rstress,gradmean,plnmask):
 def extractPressTensor(dwclass, pressprime, gradprime, dt):
     
     nclass = np.amax(dwclass)
-
+    
     R11 = (gradprime[:,:,0]+gradprime[:,:,0])*pressprime/inp.rho
     R22 = (gradprime[:,:,4]+gradprime[:,:,4])*pressprime/inp.rho
     R33 = (gradprime[:,:,8]+gradprime[:,:,8])*pressprime/inp.rho
@@ -506,6 +506,8 @@ def extractPressTensor(dwclass, pressprime, gradprime, dt):
     R23t = np.sum(R23*dt,axis=0)
 
     Dt = np.sum(dt,axis=0)
+
+    
 
     pressStrainTensor = np.zeros((6,nclass))
     for iclass in range(nclass):

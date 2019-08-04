@@ -88,6 +88,7 @@ def plotnow(fname,ylabel,data,yplus,axistype=0):
         fig.savefig(fname+'.png',quality=100,\
                     bbox_inches='tight',dpi=500)
 
+    plt.close()
     return
 
 
@@ -127,7 +128,7 @@ def readMoserFluct(fname):
     
     return yplus.tolist(), Rxx.tolist(), Rnn.tolist(), Rtt.tolist(), TKE.tolist()
 
-def readMoserTKEbudget(fname):
+def readMoserbudget(fname):
     data =np.loadtxt(fname,comments='%')
     yplus = data[:,1]
     production = data[:,2]
@@ -175,8 +176,10 @@ def myLegacyGradData():
     utau = math.sqrt(tauw/rho)
 
     data[:,0] = data[:,0]*rho*utau/mu
-    data[:,7:25] = data[:,7:25]/(math.pow(utau,4)/nu)
+    data[:,7:26] = data[:,7:26]/(math.pow(utau,4)/nu)
 
+
+    
     return data
     
 def main():
@@ -235,21 +238,113 @@ def main():
     pstrain = [[]]*3    
     print('Reading TKE budget')
     fname = 'Re550/LM_Channel_0550_RSTE_k_prof.dat'
-    yplus[0], production[0], dissipation[0], pstrain[0] = readMoserTKEbudget(fname)
+    yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
     fname = 'Re1000/LM_Channel_1000_RSTE_k_prof.dat'
-    yplus[1], production[1], dissipation[1], pstrain[1] = readMoserTKEbudget(fname)
+    yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
 
     yplus[2] = gradData[:,0].tolist()
     dissipation[2] = (0.5*(gradData[:,7]+gradData[:,8]+gradData[:,9])).tolist()
     production[2] = (0.5*(gradData[:,13]+gradData[:,14]+gradData[:,15])).tolist()
     pstrain[2] = (0.5*(gradData[:,19]+gradData[:,20]+gradData[:,21])).tolist()
 
-    plotnow('production','P',production,yplus)
-    plotnow('dissipation','$\epsilon$',dissipation,yplus)
-    plotnow('pressStrain','R',pstrain,yplus)
-    plotnow('production','P',production,yplus,1)
-    plotnow('dissipation','$\epsilon$',dissipation,yplus,1)
-    plotnow('pressStrain','R',pstrain,yplus,1)
+    plotnow('production_TKE','$P_{TKE}$',production,yplus)
+    plotnow('dissipation_TKE','$\epsilon_{TKE}$',dissipation,yplus)
+    plotnow('pressStrain_TKE','$R_{TKE}$',pstrain,yplus)
+    plotnow('production_TKE','$P_{TKE}$',production,yplus,1)
+    plotnow('dissipation_TKE','$\epsilon_{TKE}$',dissipation,yplus,1)
+    plotnow('pressStrain_TKE','$R_{TKE}$',pstrain,yplus,1)
+
+    # Get xx Budget Moser
+    yplus = [[]]*3
+    production = [[]]*3
+    dissipation = [[]]*3
+    pstrain = [[]]*3 
+    print('Reading xx budget')
+    fname = 'Re550/LM_Channel_0550_RSTE_uu_prof.dat'
+    yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
+    fname = 'Re1000/LM_Channel_1000_RSTE_uu_prof.dat'
+    yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
+    
+    yplus[2] = gradData[:,0].tolist()
+    dissipation[2] = (gradData[:,7]).tolist()
+    production[2] = (gradData[:,13]).tolist()
+    pstrain[2] = (gradData[:,19]).tolist()
+
+    plotnow('production_xx','$P_{xx}$',production,yplus)
+    plotnow('dissipation_xx','$\epsilon_{xx}$',dissipation,yplus)
+    plotnow('pressStrain_xx','$R_{xx}$',pstrain,yplus)
+    plotnow('production_xx','$P_{xx}$',production,yplus,1)
+    plotnow('dissipation_xx','$\epsilon_{xx}$',dissipation,yplus,1)
+    plotnow('pressStrain_xx','$R_{xx}$',pstrain,yplus,1)
+
+    # Get nn Budget Moser
+    yplus = [[]]*3
+    production = [[]]*3
+    dissipation = [[]]*3
+    pstrain = [[]]*3 
+    print('Reading nn budget')
+    fname = 'Re550/LM_Channel_0550_RSTE_vv_prof.dat'
+    yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
+    fname = 'Re1000/LM_Channel_1000_RSTE_vv_prof.dat'
+    yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
+    
+    yplus[2] = gradData[:,0].tolist()
+    dissipation[2] = (gradData[:,8]).tolist()
+    production[2] = (gradData[:,14]).tolist()
+    pstrain[2] = (gradData[:,20]).tolist()
+
+    plotnow('production_nn','$P_{nn}$',production,yplus)
+    plotnow('dissipation_nn','$\epsilon_{nn}$',dissipation,yplus)
+    plotnow('pressStrain_nn','$R_{nn}$',pstrain,yplus)
+    plotnow('production_nn','$P_{nn}$',production,yplus,1)
+    plotnow('dissipation_nn','$\epsilon_{nn}$',dissipation,yplus,1)
+    plotnow('pressStrain_nn','$R_{nn}$',pstrain,yplus,1)
+
+    # Get tt Budget Moser
+    yplus = [[]]*3
+    production = [[]]*3
+    dissipation = [[]]*3
+    pstrain = [[]]*3 
+    print('Reading tt budget')
+    fname = 'Re550/LM_Channel_0550_RSTE_ww_prof.dat'
+    yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
+    fname = 'Re1000/LM_Channel_1000_RSTE_ww_prof.dat'
+    yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
+    
+    yplus[2] = gradData[:,0].tolist()
+    dissipation[2] = (gradData[:,9]).tolist()
+    production[2] = (gradData[:,15]).tolist()
+    pstrain[2] = (gradData[:,21]).tolist()
+
+    plotnow('production_tt','$P_{tt}$',production,yplus)
+    plotnow('dissipation_tt','$\epsilon_{tt}$',dissipation,yplus)
+    plotnow('pressStrain_tt','$R_{tt}$',pstrain,yplus)
+    plotnow('production_tt','$P_{tt}$',production,yplus,1)
+    plotnow('dissipation_tt','$\epsilon_{tt}$',dissipation,yplus,1)
+    plotnow('pressStrain_tt','$R_{tt}$',pstrain,yplus,1)
+
+    # Get un Budget Moser
+    yplus = [[]]*3
+    production = [[]]*3
+    dissipation = [[]]*3
+    pstrain = [[]]*3 
+    print('Reading un budget')
+    fname = 'Re550/LM_Channel_0550_RSTE_uv_prof.dat'
+    yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
+    fname = 'Re1000/LM_Channel_1000_RSTE_uv_prof.dat'
+    yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
+    
+    yplus[2] = gradData[:,0].tolist()
+    dissipation[2] = (gradData[:,10]).tolist()
+    production[2] = (gradData[:,16]).tolist()
+    pstrain[2] = (gradData[:,22]).tolist()
+
+    plotnow('production_uv','$P_{un}$',production,yplus)
+    plotnow('dissipation_uv','$\epsilon_{un}$',dissipation,yplus)
+    plotnow('pressStrain_uv','$R_{un}$',pstrain,yplus)
+    plotnow('production_uv','$P_{un}$',production,yplus,1)
+    plotnow('dissipation_uv','$\epsilon_{un}$',dissipation,yplus,1)
+    plotnow('pressStrain_uv','$R_{un}$',pstrain,yplus,1)
 
     return
 

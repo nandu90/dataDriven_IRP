@@ -7,6 +7,7 @@ import math
 import numpy as np
 import os
 import inp
+import numpy.testing as npt
 
 def readvarts(fname):
     probedata = np.zeros([inp.nsteps,inp.nprobes,inp.nvar])
@@ -39,6 +40,11 @@ def coordRotation(y, z, v, w):
     tan = np.zeros(v.shape)
     norm = np.zeros(v.shape)
 
+    """
+    magorig = np.zeros(v.shape)
+    magnew = np.zeros(v.shape)
+
+    
     for i in range(y.shape[1]):
         if(y[0,i] > 0 and z[0,i] > 0):
             delt = inp.pitch - abs(z[0,i])
@@ -69,6 +75,26 @@ def coordRotation(y, z, v, w):
         elif(quad == 4):
             norm[:,i] = v[:,i]*math.sin(theta)+w[:,i]*math.cos(theta)
             tan[:,i] = -v[:,i]*math.cos(theta)+w[:,i]*math.sin(theta)
+        
+        magorig[:,i] = np.sqrt(np.power(v[:,i],2)+np.power(w[:,i],2))
+        magnew[:,i] = np.sqrt(np.power(norm[:,i],2)+np.power(tan[:,i],2))
+    """
+    magorig = np.sqrt(np.power(v,2)+np.power(w,2))
+    # Linear transformation
+    ynew = y[0,:] - np.sign(y[0,:])*(inp.pitch/2.0)
+    znew = z[0,:] - np.sign(z[0,:])*(inp.pitch/2.0)
+
+    # Angle
+    theta = np.arctan2(znew,ynew)
+
+    # Rotation
+    for i in range(v.shape[0]):
+        norm[i,:] = v[i,:]*np.cos(theta) - w[i,:]*np.sin(theta)
+        tan[i,:] = v[i,:]*np.sin(theta) + w[i,:]*np.cos(theta)
+    
+    magnew = np.sqrt(np.power(norm,2)+np.power(tan,2))
+    
+    npt.assert_almost_equal(magorig,magnew,decimal=9)
 
     return norm, tan
 
@@ -91,6 +117,7 @@ def rotateVectors(probedata):
         
         probedata[:,:,14], probedata[:,:,15] = coordRotation(y, z,\
                                 probedata[:,:,14], probedata[:,:,15])
+
     return probedata
 
 
