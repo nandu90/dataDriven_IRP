@@ -101,6 +101,15 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata,axistype=0):
     if(inp.plttype == '1d'):     
         ax.grid()
         ax.legend(loc='best',fontsize=15)
+    # elif(inp.plttype == '3d'):
+    #     extraticks = [3,13,18.17]
+    #     plt.xticks(list(plt.xticks()[0]) + extraticks)
+    #     a = ax.get_xticks().tolist()
+    #     a[-3]='spacer'
+    #     a[-2]='vane'
+    #     a[-1]='end vane'
+    #     ax.set_xticklabels(a)
+        
     if(axistype == 0):
         fig.savefig(fname+'_yplus.png',quality=100,\
                     bbox_inches='tight',dpi=500)
@@ -262,7 +271,7 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     plotMultiPlane('Umean','$U^+$',xplns,plns,dw,udw/inp.utau,1)
     plotMultiPlane('Vmean','$V^+$',xplns,plns,dw,vdw/inp.utau,1)
     plotMultiPlane('Wmean','$W^+$',xplns,plns,dw,wdw/inp.utau,1)
-    plotMultiPlane('TKE','$TKE (m^2/s^2)$',xplns,plns,dw,TKE,1)
+    plotMultiPlane('TKE','$TKE$',xplns,plns,dw,TKE/math.pow(inp.utau,2),1)
 
     plotMultiPlane('Rxx','$R_{xx}$',xplns,plns,dw,Rstress[:,0,:]/math.pow(inp.utau,2),1)
     plotMultiPlane('Rnn','$R_{nn}$',xplns,plns,dw,Rstress[:,1,:]/math.pow(inp.utau,2),1)
@@ -627,13 +636,13 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
     plotMultiPlane('Snt','${Snt}(s^{-1})$',\
                    xplns,plns,dw,Snt)
    
-    plotMultiPlane('newdiss','${\epsilon}$',\
+    plotMultiPlane('diss','${\epsilon}$',\
                    xplns,plns,dw,\
                    0.5*(disstensor[:,0,:]+disstensor[:,1,:]\
                         +disstensor[:,2,:])/(math.pow(inp.utau,4)/\
                         (inp.mu/inp.rho)),1)
 
-    plotMultiPlane('newprod','${P}$',\
+    plotMultiPlane('prod','${P}$',\
                    xplns,plns,dw,\
                    0.5*(prodtensor[:,0,:]+prodtensor[:,1,:]\
                         +prodtensor[:,2,:])/(math.pow(inp.utau,4)/\

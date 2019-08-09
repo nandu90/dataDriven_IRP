@@ -52,9 +52,9 @@ def plotnow(fname,ylabel,data,yplus,axistype=0):
     ax.set_ylabel(ylabel,fontsize=20)
 
     markers = ['','','.','']
-    labels = ['$Re_{\\tau}550 (Moser)$',\
-              '${Re_\\tau}1000 (Moser)$','$Re_{\\tau}683 (PHASTA)$',\
-              '$Re_{\\tau}1600$ (Jun et al, 2015)']
+    labels = ['$Re_{\\tau}180 (Moser)$',\
+              '${Re_\\tau}550 (Moser)$','$Re_{\\tau}340 (PHASTA)$',\
+              '$Re_{\\tau}800$ (Jun et al, 2015)']
     for i in range(len(data)):
         if(axistype == 0):
             ax.semilogx(yplus[i],data[i],label=labels[i],marker=markers[i])     
@@ -104,6 +104,9 @@ def readMoservel(fname):
 
     U = U[yplus<300]
     yplus = yplus[yplus<300]
+
+    U = U[yplus>0.1]
+    yplus = yplus[yplus>0.1]
     return yplus.tolist(), U.tolist()
 
 def readMoserFluct(fname):
@@ -125,6 +128,15 @@ def readMoserFluct(fname):
     Rnt = Rnt[yplus<300]
     TKE = TKE[yplus<300]
     yplus = yplus[yplus<300]
+
+    Rxx = Rxx[yplus>0.1]
+    Rnn = Rnn[yplus>0.1]
+    Rtt = Rtt[yplus>0.1]
+    Rxn = Rxn[yplus>0.1]
+    Rxt = Rxt[yplus>0.1]
+    Rnt = Rnt[yplus>0.1]
+    TKE = TKE[yplus>0.1]
+    yplus = yplus[yplus>0.1]
     
     return yplus.tolist(), Rxx.tolist(), Rnn.tolist(), Rtt.tolist(), TKE.tolist()
 
@@ -138,7 +150,12 @@ def readMoserbudget(fname):
     production = production[yplus<300]
     dissipation = dissipation[yplus<300]
     pstrain = pstrain[yplus<300]
-    yplus = yplus[yplus<300]    
+    yplus = yplus[yplus<300]
+
+    production = production[yplus>0.1]
+    dissipation = dissipation[yplus>0.1]
+    pstrain = pstrain[yplus>0.1]
+    yplus = yplus[yplus>0.1]
 
     return yplus.tolist(), production.tolist(), dissipation.tolist(), pstrain.tolist()
 
@@ -192,9 +209,9 @@ def main():
     yplus = [[]]*3
     U = [[]]*3
     print('Reading mean velocities')
-    fname = 'Re550/LM_Channel_0550_mean_prof.dat'
+    fname = 'Re180/LM_Channel_0180_mean_prof.dat'
     yplus[0], U[0] = readMoservel(fname)
-    fname = 'Re1000/LM_Channel_1000_mean_prof.dat'
+    fname = 'Re550/LM_Channel_0550_mean_prof.dat'
     yplus[1], U[1] = readMoservel(fname)
     
     yplus[2] = simData[:,0].tolist()
@@ -211,9 +228,9 @@ def main():
     Rtt = [[]]*3
     TKE = [[]]*3
     print('Reading Reynolds Stresses')
-    fname = 'Re550/LM_Channel_0550_vel_fluc_prof.dat'
+    fname = 'Re180/LM_Channel_0180_vel_fluc_prof.dat'
     yplus[0], Rxx[0], Rnn[0], Rtt[0], TKE[0] = readMoserFluct(fname)
-    fname = 'Re1000/LM_Channel_1000_vel_fluc_prof.dat'
+    fname = 'Re550/LM_Channel_0550_vel_fluc_prof.dat'
     yplus[1], Rxx[1], Rnn[1], Rtt[1], TKE[1] = readMoserFluct(fname)
     
     yplus[2] = simData[:,0].tolist()
@@ -237,9 +254,9 @@ def main():
     dissipation = [[]]*3
     pstrain = [[]]*3    
     print('Reading TKE budget')
-    fname = 'Re550/LM_Channel_0550_RSTE_k_prof.dat'
+    fname = 'Re180/LM_Channel_0180_RSTE_k_prof.dat'
     yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
-    fname = 'Re1000/LM_Channel_1000_RSTE_k_prof.dat'
+    fname = 'Re550/LM_Channel_0550_RSTE_k_prof.dat'
     yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
 
     yplus[2] = gradData[:,0].tolist()
@@ -260,9 +277,9 @@ def main():
     dissipation = [[]]*3
     pstrain = [[]]*3 
     print('Reading xx budget')
-    fname = 'Re550/LM_Channel_0550_RSTE_uu_prof.dat'
+    fname = 'Re180/LM_Channel_0180_RSTE_uu_prof.dat'
     yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
-    fname = 'Re1000/LM_Channel_1000_RSTE_uu_prof.dat'
+    fname = 'Re550/LM_Channel_0550_RSTE_uu_prof.dat'
     yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
     
     yplus[2] = gradData[:,0].tolist()
@@ -283,9 +300,9 @@ def main():
     dissipation = [[]]*3
     pstrain = [[]]*3 
     print('Reading nn budget')
-    fname = 'Re550/LM_Channel_0550_RSTE_vv_prof.dat'
+    fname = 'Re180/LM_Channel_0180_RSTE_vv_prof.dat'
     yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
-    fname = 'Re1000/LM_Channel_1000_RSTE_vv_prof.dat'
+    fname = 'Re550/LM_Channel_0550_RSTE_vv_prof.dat'
     yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
     
     yplus[2] = gradData[:,0].tolist()
@@ -306,9 +323,9 @@ def main():
     dissipation = [[]]*3
     pstrain = [[]]*3 
     print('Reading tt budget')
-    fname = 'Re550/LM_Channel_0550_RSTE_ww_prof.dat'
+    fname = 'Re180/LM_Channel_0180_RSTE_ww_prof.dat'
     yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
-    fname = 'Re1000/LM_Channel_1000_RSTE_ww_prof.dat'
+    fname = 'Re550/LM_Channel_0550_RSTE_ww_prof.dat'
     yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
     
     yplus[2] = gradData[:,0].tolist()
@@ -329,9 +346,9 @@ def main():
     dissipation = [[]]*3
     pstrain = [[]]*3 
     print('Reading un budget')
-    fname = 'Re550/LM_Channel_0550_RSTE_uv_prof.dat'
+    fname = 'Re180/LM_Channel_0180_RSTE_uv_prof.dat'
     yplus[0], production[0], dissipation[0], pstrain[0] = readMoserbudget(fname)
-    fname = 'Re1000/LM_Channel_1000_RSTE_uv_prof.dat'
+    fname = 'Re550/LM_Channel_0550_RSTE_uv_prof.dat'
     yplus[1], production[1], dissipation[1], pstrain[1] = readMoserbudget(fname)
     
     yplus[2] = gradData[:,0].tolist()
