@@ -50,7 +50,7 @@ def main():
     print('Number of identified x-planes: ',xplns.shape[0])
         
     #    Rotate the vectors to norm-tan system
-    if(inp.legacyPlot == 1):
+    if(inp.rotate == 1):
         probedata = funcs.rotateVectors(probedata)
         print('Rotated All Vectors')
     else:
@@ -67,7 +67,7 @@ def main():
                    delimiter=',',header='<u>,<v>,<w>')
         print('Saved Mean Velocities')
 
-        if(inp.legacyPlot == 1):
+        if(inp.rotate == 1):
             print('Legacy Plots Requested')
             legacyplots.extractPlots(plnindices,xplns,y,z,probedata,\
                                      umean,vmean,wmean)
@@ -114,10 +114,33 @@ def main():
                                            probedata[:,:,0])
         print('Extracted Mean of Pressure Gradients')
 
-        if(inp.legacyPlot == 1):
+        if(inp.rotate == 1):
             print('Extracting Data in Legacy Format')
             legacyplots.extractGrads(plnindices,xplns,y,z,probedata,\
                                      gradmean,gradpmean,pmean,Rstress)
+
+    elif(inp.extract == 3):
+        umean = funcs.getmean(probedata[:,:,4], probedata[:,:,0])
+        vmean = funcs.getmean(probedata[:,:,5], probedata[:,:,0])
+        wmean = funcs.getmean(probedata[:,:,6], probedata[:,:,0])
+        print('Extracted Mean Velocities')
+        
+        uprime = probedata[:,:,4] - umean
+        vprime = probedata[:,:,5] - vmean
+        wprime = probedata[:,:,6] - wmean
+        print('Calculated fluctuating component of velocity')
+
+        gradpmean = np.zeros((inp.nprobes,3))
+        for i in range(3):
+            gradpmean[:,i] = funcs.getmean(probedata[:,:,i+7],\
+                                           probedata[:,:,0])
+        print('Extracted Mean of Pressure Gradients')
+
+        if(inp.rotate == 1):
+            print('Extracting Data in Legacy Format')
+            legacyplots.extractpressgradient(plnindices,xplns,y,z,\
+            umean,vmean,wmean,gradpmean,probedata)
+        
     return
         
         

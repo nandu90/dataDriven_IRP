@@ -9,8 +9,17 @@ import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import os
 import time
+
+
+def pow_with_nan(x,y):
+    try:
+        return math.pow(x,y)
+    except ValueError:
+        #return float('nan')
+        return 0.0
 
 def readJunData():
     fname = 'Jun2015/JunTKE.csv'
@@ -43,18 +52,27 @@ def plotnow(fname,ylabel,data,yplus,axistype=0):
     default_cycler = (cycler(color=['b','r','k','m','g'])*\
                       cycler(linestyle=['-'])*cycler(marker=['.']))
 
+    name = fname
     plt.rc('lines',linewidth=1)
     plt.rc('axes',prop_cycle=default_cycler)
     
-    fig = plt.figure(figsize=(7,5))
+    if(fname != 'anisotropy'):
+        fig = plt.figure(figsize=(7,5))
+    else:
+        fig = plt.figure(figsize=(5,5))
     ax = fig.add_subplot(111)
-    ax.set_xlabel('$y^+$',fontsize=20)
+    if(name != 'anisotropy'):
+        ax.set_xlabel('$y^+$',fontsize=20)
+    else:
+        ax.set_xlabel('$\\xi$',fontsize=20)
     ax.set_ylabel(ylabel,fontsize=20)
 
     markers = ['','','.','']
     labels = ['$Re_{\\tau}180 (Moser)$',\
               '${Re_\\tau}550 (Moser)$','$Re_{\\tau}340 (PHASTA)$',\
               '$Re_{\\tau}800$ (Jun et al, 2015)']
+
+    
     for i in range(len(data)):
         if(axistype == 0):
             ax.semilogx(yplus[i],data[i],label=labels[i],marker=markers[i])     
@@ -77,6 +95,24 @@ def plotnow(fname,ylabel,data,yplus,axistype=0):
         else:
             ax.plot(juny,junU,label=labels[3],\
                     marker=markers[3])
+
+    if(name == 'anisotropy'):
+        x = np.linspace(0,1./3.,num=100)
+        y = x
+        ax.plot(x,y,linestyle='--',marker='',color='k',linewidth=0.5)
+
+        # x = np.linspace(-1./6.,0.0,num=100)
+        # y = -x
+        # ax.plot(x,y,linestyle='--',marker='',color='k',linewidth=0.5)
+
+        x = np.linspace(0.0,1./3.,num=100)
+        y = np.sqrt(1./27. + 2.*x**3.)
+        ax.plot(x,y,linestyle='--',marker='',color='k',linewidth=0.5)
+        ax.xaxis.set_ticks([0.,1./6.,1./3.])
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.3f'))
+
+        ax.yaxis.set_ticks([0.,1./6.,1./3.])
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.3f'))
 
     ax.grid()
     ax.legend(loc='best',fontsize=15)
@@ -138,7 +174,27 @@ def readMoserFluct(fname):
     TKE = TKE[yplus>0.1]
     yplus = yplus[yplus>0.1]
     
-    return yplus.tolist(), Rxx.tolist(), Rnn.tolist(), Rtt.tolist(), TKE.tolist()
+    b11 = Rxx/(TKE*2.0) -1./3.
+    b22 = Rnn/(TKE*2.0) -1./3.
+    b33 = Rtt/(TKE*2.0) -1./3.
+    b12 = Rxn/(TKE*2.0)
+    b13 = Rxt/(TKE*2.0)
+    b23 = Rnt/(TKE*2.0)
+
+    
+    eta = np.zeros(yplus.shape)
+    xi = np.zeros(yplus.shape)
+    for i in range(yplus.shape[0]):
+        mat = np.matrix([[b11[i],b12[i],b13[i]],\
+                         [b12[i],b22[i],b23[i]],\
+                         [b13[i],b23[i],b33[i]]])
+        eig = np.linalg.eigvals(mat)
+        eta[i] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
+        xi[i] = pow_with_nan(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.,1./3.)
+
+    
+    return yplus.tolist(), Rxx.tolist(), Rnn.tolist(), Rtt.tolist(),\
+        TKE.tolist(), eta.tolist(), xi.tolist()
 
 def readMoserbudget(fname):
     data =np.loadtxt(fname,comments='%')
@@ -175,8 +231,29 @@ def myLegacyData():
     data[:,0] = data[:,0]*rho*utau/mu
     data[:,1:4] = data[:,1:4]/utau
     data[:,4:11] = data[:,4:11]/math.pow(utau,2)
+    
+    b11 = data[:,4]/(data[:,10]*2.0) -1./3.
+    b22 = data[:,5]/(data[:,10]*2.0) -1./3.
+    b33 = data[:,6]/(data[:,10]*2.0) -1./3.
+    b12 = data[:,7]/(data[:,10]*2.0)
+    b13 = data[:,8]/(data[:,10]*2.0)
+    b23 = data[:,9]/(data[:,10]*2.0)
 
-    return data
+    
+    eta = np.zeros(data[:,0].shape[0])
+    xi = np.zeros(data[:,0].shape[0])
+    for i in range(data[:,0].shape[0]):
+        mat = np.matrix([[b11[i],b12[i],b13[i]],\
+                         [b12[i],b22[i],b23[i]],\
+                         [b13[i],b23[i],b33[i]]])
+        eig = np.linalg.eigvals(mat)
+        eta[i] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
+        xi[i] = pow_with_nan(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.,1./3.)
+
+    zeromask = np.where(xi != 0.0, True, False)
+    eta = eta[zeromask]
+    xi = xi[zeromask]
+    return data, eta, xi
 
 def myLegacyGradData():
     fname = '/home/nsaini3/CASES/summer2019/singlephasethermal/Re11000/legacyData/gradExtracts_plane_0.csv'
@@ -195,14 +272,31 @@ def myLegacyGradData():
     data[:,0] = data[:,0]*rho*utau/mu
     data[:,7:26] = data[:,7:26]/(math.pow(utau,4)/nu)
 
+    return data
 
+def myLegacyPiData():
+    fname = '/home/nsaini3/CASES/summer2019/singlephasethermal/Re11000/legacyData/gradPressExtracts_plane_0.csv'
+    data = np.loadtxt(fname,comments='#',delimiter=',')
+
+    Re = 11000.0
+    Um = 15.772
+    rho = 0.914482
+    mu = 17.0141E-6
+    nu = mu/rho
+
+    f = 0.316*math.pow(Re,-0.25)
+    tauw = rho*Um*Um*f/8
+    utau = math.sqrt(tauw/rho)
+
+    data[:,0] = data[:,0]*rho*utau/mu
+    data[:,1:7] = data[:,1:7]/(math.pow(utau,4)/nu)
     
     return data
     
 def main():
-
+    
     # Get your extracted data
-    simData = myLegacyData()
+    simData, myeta, myxi = myLegacyData()
     gradData = myLegacyGradData()
 
     # Get mean Velocities Moser
@@ -227,17 +321,21 @@ def main():
     Rnn = [[]]*3
     Rtt = [[]]*3
     TKE = [[]]*3
+    eta = [[]]*3
+    xi = [[]]*3
     print('Reading Reynolds Stresses')
     fname = 'Re180/LM_Channel_0180_vel_fluc_prof.dat'
-    yplus[0], Rxx[0], Rnn[0], Rtt[0], TKE[0] = readMoserFluct(fname)
+    yplus[0], Rxx[0], Rnn[0], Rtt[0], TKE[0], eta[0], xi[0] = readMoserFluct(fname)
     fname = 'Re550/LM_Channel_0550_vel_fluc_prof.dat'
-    yplus[1], Rxx[1], Rnn[1], Rtt[1], TKE[1] = readMoserFluct(fname)
+    yplus[1], Rxx[1], Rnn[1], Rtt[1], TKE[1], eta[1], xi[1] = readMoserFluct(fname)
     
     yplus[2] = simData[:,0].tolist()
     Rxx[2] = simData[:,4].tolist()
     Rnn[2] = simData[:,5].tolist()
     Rtt[2] = simData[:,6].tolist()
     TKE[2] = simData[:,10].tolist()
+    eta[2] = myeta.tolist()
+    xi[2] = myxi.tolist()
     
     plotnow('Rxx','$R_{xx}$',Rxx,yplus)
     plotnow('Rnn','$R_{nn}$',Rnn,yplus)
@@ -248,6 +346,8 @@ def main():
     plotnow('Rtt','$R_{tt}$',Rtt,yplus,1)
     plotnow('TKE','$TKE$',TKE,yplus,1)
 
+    plotnow('anisotropy','$\eta$',eta,xi,1)
+    """
     # Get TKE Budget Moser
     yplus = [[]]*3
     production = [[]]*3
@@ -362,7 +462,46 @@ def main():
     plotnow('production_uv','$P_{un}$',production,yplus,1)
     plotnow('dissipation_uv','$\epsilon_{un}$',dissipation,yplus,1)
     plotnow('pressStrain_uv','$R_{un}$',pstrain,yplus,1)
+    """
+    # Get the velocity-pressure-gradient tensor
+    Pidata = myLegacyPiData()
+    yplus = [[]]*1
+    Pitrace = [[]]*1
+    print('Plotting Velocity pressure gradient tensor')
+    
+    yplus[0] = Pidata[:,0].tolist()
+    Pitrace[0] = (0.5*(Pidata[:,1]+Pidata[:,2]+Pidata[:,3])).tolist()
+    plotnow('Pitrace','$\Pi$',Pitrace,yplus)
+    plotnow('Pitrace','$\Pi$',Pitrace,yplus,1)
 
+    yplus = [[]]*1
+    Pixx = [[]]*1    
+    yplus[0] = Pidata[:,0].tolist()
+    Pixx[0] = (Pidata[:,1]).tolist()
+    plotnow('Pitrace_xx','$\Pi_{xx}$',Pixx,yplus)
+    plotnow('Pitrace_xx','$\Pi_{xx}$',Pixx,yplus,1)
+
+    yplus = [[]]*1
+    Pinn = [[]]*1    
+    yplus[0] = Pidata[:,0].tolist()
+    Pinn[0] = (Pidata[:,2]).tolist()
+    plotnow('Pitrace_nn','$\Pi_{nn}$',Pinn,yplus)
+    plotnow('Pitrace_nn','$\Pi_{nn}$',Pinn,yplus,1)
+
+    yplus = [[]]*1
+    Pitt = [[]]*1    
+    yplus[0] = Pidata[:,0].tolist()
+    Pitt[0] = (Pidata[:,3]).tolist()
+    plotnow('Pitrace_tt','$\Pi_{tt}$',Pitt,yplus)
+    plotnow('Pitrace_tt','$\Pi_{tt}$',Pitt,yplus,1)
+    
+    yplus = [[]]*1
+    Pixn = [[]]*1    
+    yplus[0] = Pidata[:,0].tolist()
+    Pixn[0] = (Pidata[:,4]).tolist()
+    plotnow('Pitrace_xn','$\Pi_{xn}$',Pixn,yplus)
+    plotnow('Pitrace_xn','$\Pi_{xn}$',Pixn,yplus,1)
+    
     return
 
 if __name__ == "__main__":

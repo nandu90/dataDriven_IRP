@@ -31,6 +31,11 @@ def readvarts(fname):
                 probedata[istep,iprobe,4:13]=readata[istep,iprobe,6:15]
                 probedata[istep,iprobe,13:16]=readata[istep,iprobe,15:18]
                 probedata[istep,iprobe,16] = readata[istep,iprobe,0]
+            elif(inp.extract == 3):
+                probedata[istep,iprobe,0]=readata[istep,iprobe,4]
+                probedata[istep,iprobe,1:4] = readata[istep,iprobe,25:28]
+                probedata[istep,iprobe,4:7] = readata[istep,iprobe,1:4]
+                probedata[istep,iprobe,7:10]=readata[istep,iprobe,16:19]
     return probedata
 
 
@@ -117,6 +122,13 @@ def rotateVectors(probedata):
         
         probedata[:,:,14], probedata[:,:,15] = coordRotation(y, z,\
                                 probedata[:,:,14], probedata[:,:,15])
+
+    elif(inp.extract == 3):
+        probedata[:,:,5], probedata[:,:,6] = coordRotation(y, z,\
+                                probedata[:,:,5], probedata[:,:,6])
+
+        probedata[:,:,8], probedata[:,:,9] = coordRotation(y, z,\
+                                probedata[:,:,8], probedata[:,:,9])
 
     return probedata
 

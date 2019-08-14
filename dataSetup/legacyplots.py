@@ -9,11 +9,17 @@ import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from mpl_toolkits.mplot3d import Axes3D
 import inp
 
 
-    
+def pow_with_nan(x,y):
+    try:
+        return math.pow(x,y)
+    except ValueError:
+        #return float('nan')
+        return 0.0
 
 def extractPlane(plnindex,plnindices,data,y,z,fname,ylabel):
 
@@ -71,9 +77,10 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata,axistype=0):
     plt.rc('lines', linewidth=1)
     plt.rc('axes', prop_cycle=default_cycler)
     
+    name = fname
     fname = inp.cwd+'/legacyData/plots/'+fname
 
-    if(inp.plttype == '3d'):
+    if(inp.plttype == '3d' and name != 'anisotropy'):
         fname = fname+'3d'
         fig = plt.figure(figsize=(10,5))
         ax = fig.add_subplot(111,projection='3d')
@@ -83,11 +90,17 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata,axistype=0):
     else:
         fig = plt.figure(figsize=(7,5))
         ax = fig.add_subplot(111)
-        ax.set_xlabel('$y^+$',fontsize=20)
+        if(name != 'anisotropy'):
+            ax.set_xlabel('$y^+$',fontsize=20)
+        else:
+            ax.set_xlabel('$\\xi$',fontsize=20)
         ax.set_ylabel(ylabel,fontsize=20)
 
     for ipln in range(len(plns)):
-        yplus = dw[ipln]*inp.rho*inp.utau/inp.mu        
+        if(name != 'anisotropy'):
+            yplus = dw[ipln]*inp.rho*inp.utau/inp.mu  
+        else:
+            yplus = dw[ipln]
         strlabel = 'x = %.2f mm'%(xplns[plns[ipln]]*1000.0)
         xdummy = np.full(dwdata.shape[1],xplns[plns[ipln]]*1000.0)
         if(inp.plttype == '3d'):
@@ -97,7 +110,25 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata,axistype=0):
                 ax.semilogx(yplus,dwdata[ipln],label = strlabel)
             elif(axistype == 1):
                 ax.plot(yplus,dwdata[ipln],label=strlabel)
-        
+
+    if(name == 'anisotropy'):
+        x = np.linspace(0,1./3.,num=100)
+        y = x
+        ax.plot(x,y,linestyle='-',marker='',color='k')
+
+        x = np.linspace(-1./6.,0.0,num=100)
+        y = -x
+        ax.plot(x,y,linestyle='-',marker='',color='k')
+
+        x = np.linspace(-1./6.,1./3.,num=100)
+        y = np.sqrt(1./27. + 2.*x**3.)
+        ax.plot(x,y,linestyle='-',marker='',color='k')
+        ax.xaxis.set_ticks([-1./6.,0.,1./6.,1./3.])
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.3f'))
+
+        ax.yaxis.set_ticks([0.,1./6.,1./3.])
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.3f'))
+
     if(inp.plttype == '1d'):     
         ax.grid()
         ax.legend(loc='best',fontsize=15)
@@ -109,7 +140,7 @@ def plotMultiPlane(fname,ylabel,xplns,plns,dw,dwdata,axistype=0):
     #     a[-2]='vane'
     #     a[-1]='end vane'
     #     ax.set_xticklabels(a)
-        
+    
     if(axistype == 0):
         fig.savefig(fname+'_yplus.png',quality=100,\
                     bbox_inches='tight',dpi=500)
@@ -221,14 +252,38 @@ def extractTKE(uprime,vprime,wprime,dt,dwclass):
 
     TKE = np.zeros(nclass)
     Rstress = np.zeros((6,nclass))
+    bij = np.zeros((6,nclass))
+    xi =np.zeros(nclass)
+    eta =np.zeros(nclass)
+
     for iclass in range(nclass):
         dwmask = np.where(dwclass == iclass+1,True,False)
         Deltat = np.sum(Dt[dwmask])
         TKE[iclass] = np.sum(TKEt[dwmask])/Deltat
         for i in range(6):
             Rstress[i,iclass] = np.sum(Rstresst[i,:][dwmask])/Deltat
+            bij[i,iclass] = (Rstress[i,iclass]/TKE[iclass])*0.5
+            if(i < 3):
+                bij[i,iclass] -= (1.0/3.0)
+        eta[iclass] = math.pow(bij[0,iclass],2.)+\
+                      math.pow(bij[1,iclass],2.)+\
+                      math.pow(bij[2,iclass],2.)
+        eta[iclass] = math.sqrt(eta[iclass]/6.0)
 
-    return TKE, Rstress
+        xi[iclass] = math.pow(bij[0,iclass],3.)+\
+                     math.pow(bij[1,iclass],3.)+\
+                     math.pow(bij[2,iclass],3.)
+        new = pow_with_nan(xi[iclass]/6.0,1./3.)
+        xi[iclass] = new
+        
+        mat = np.matrix([[bij[0,iclass],bij[3,iclass],bij[4,iclass]],\
+                        [bij[3,iclass],bij[1,iclass],bij[5,iclass]],\
+                         [bij[4,iclass],bij[5,iclass],bij[2,iclass]]])
+        eig = np.linalg.eigvals(mat)
+        eta[iclass] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
+        xi[iclass] = pow_with_nan(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.,1./3.)
+        print(eta[iclass],xi[iclass])
+    return TKE, Rstress, bij, xi, eta
 
 
 def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
@@ -240,6 +295,9 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     wdw = [[] for i in range(len(plns))]
     TKE = [[] for i in range(len(plns))]
     Rstress = [[] for i in range(len(plns))]
+    bij = [[] for i in range(len(plns))]
+    xi = [[] for i in range(len(plns))]
+    eta = [[] for i in range(len(plns))]
     
     print("Planes being processed: ",plns)
 
@@ -258,7 +316,8 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
         uprime, vprime, wprime, dt = extractfluct(probedata,\
                     plnmask,dwclass,\
                     udw[ipln],vdw[ipln],wdw[ipln])
-        TKE[ipln], Rstress[ipln] = extractTKE(uprime,vprime,wprime,dt,dwclass)
+        TKE[ipln],Rstress[ipln],bij[ipln],xi[ipln],eta[ipln] =\
+                    extractTKE(uprime,vprime,wprime,dt,dwclass)
 
     dw = np.array(dw)
     udw = np.array(udw)
@@ -266,6 +325,9 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     wdw = np.array(wdw)
     TKE = np.array(TKE)
     Rstress = np.array(Rstress)
+    bij = np.array(bij)
+    xi = np.array(xi)
+    eta = np.array(eta)
     
     print("Creating (Legacy) Plots Now")
     plotMultiPlane('Umean','$U^+$',xplns,plns,dw,udw/inp.utau,1)
@@ -279,6 +341,8 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     plotMultiPlane('Rxn','$R_{xn}$',xplns,plns,dw,Rstress[:,3,:]/math.pow(inp.utau,2),1)
     plotMultiPlane('Rxt','$R_{xt}$',xplns,plns,dw,Rstress[:,4,:]/math.pow(inp.utau,2),1)
     plotMultiPlane('Rnt','$R_{nt}$',xplns,plns,dw,Rstress[:,5,:]/math.pow(inp.utau,2),1)
+
+    plotMultiPlane('anisotropy','$\\eta$',xplns,plns,xi,eta,1)
     
     # with open('compare.txt','w') as f:
     #     for i in range(dw.shape[1]):
@@ -705,4 +769,120 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
         head = head+',R_xx,R_nn,R_tt,R_xn,R_xt,R_nt'
         np.savetxt(fname,stack,header=head,delimiter=',')
 
+    return
+
+def extractgradpressfluct(probedata, plnmask, dwclass,\
+                          gradpdwx,gradpdwy,gradpdwz):
+    nclass = np.amax(dwclass)
+
+    gradmp = np.zeros((dwclass.shape[0],3))
+    
+    for iclass in range(nclass):
+        gradmp[:,0]=np.where(dwclass==iclass+1,gradpdwx[iclass],gradmp[:,0])
+        gradmp[:,1]=np.where(dwclass==iclass+1,gradpdwy[iclass],gradmp[:,1])
+        gradmp[:,2]=np.where(dwclass==iclass+1,gradpdwz[iclass],gradmp[:,2])
+
+    gradpprime = np.zeros((inp.totalsteps,dwclass.shape[0],3))
+    
+    for istep in range(inp.totalsteps):
+        for i in range(3):
+            gradpplane = probedata[istep,:,i+7][plnmask]
+            gradpprime[istep,:,i]=np.subtract(gradpplane,gradmp[:,i])
+
+    return gradpprime
+
+def extractVelPressTensor(dwclass, uprime, vprime, wprime,\
+                         gradpprime, dt):
+
+    nclass = np.amax(dwclass)
+
+    Pi11=-(uprime*gradpprime[:,:,0]+uprime*gradpprime[:,:,0])/inp.rho
+    Pi22=-(vprime*gradpprime[:,:,1]+vprime*gradpprime[:,:,1])/inp.rho
+    Pi33=-(wprime*gradpprime[:,:,2]+wprime*gradpprime[:,:,2])/inp.rho
+    Pi12=-(uprime*gradpprime[:,:,1]+vprime*gradpprime[:,:,0])/inp.rho
+    Pi13=-(uprime*gradpprime[:,:,2]+wprime*gradpprime[:,:,0])/inp.rho
+    Pi23=-(vprime*gradpprime[:,:,2]+wprime*gradpprime[:,:,1])/inp.rho
+
+    Pi11t = np.sum(Pi11*dt,axis=0)
+    Pi22t = np.sum(Pi22*dt,axis=0)
+    Pi33t = np.sum(Pi33*dt,axis=0)
+    Pi12t = np.sum(Pi12*dt,axis=0)
+    Pi13t = np.sum(Pi13*dt,axis=0)
+    Pi23t = np.sum(Pi23*dt,axis=0)
+
+    Dt = np.sum(dt,axis=0)
+
+    pressStrainTensor = np.zeros((6,nclass))
+    for iclass in range(nclass):
+        dwmask = np.where(dwclass == iclass+1,True,False)
+        Deltat = np.sum(Dt[dwmask])
+        
+        pressStrainTensor[0,iclass] = np.sum(Pi11t[dwmask])/Deltat
+        pressStrainTensor[1,iclass] = np.sum(Pi22t[dwmask])/Deltat
+        pressStrainTensor[2,iclass] = np.sum(Pi33t[dwmask])/Deltat
+        pressStrainTensor[3,iclass] = np.sum(Pi12t[dwmask])/Deltat
+        pressStrainTensor[4,iclass] = np.sum(Pi13t[dwmask])/Deltat
+        pressStrainTensor[5,iclass] = np.sum(Pi23t[dwmask])/Deltat
+
+    return pressStrainTensor
+
+def extractpressgradient(plnindices,xplns,y,z,\
+                             umean,vmean,wmean,gradpmean,probedata):
+
+    plns = list(range(0,xplns.shape[0],int(xplns.shape[0]/inp.nplot)))
+    dw = [[] for i in range(len(plns))]
+    velPressStrainTensor = [[] for i in range(len(plns))]
+    
+    print("Planes being processed: ",plns)
+    for ipln in range(len(plns)):
+        plnmask = np.where(plnindices == plns[ipln],True,False)
+        yplane = y[plnmask]
+        zplane = z[plnmask]
+        
+        dwclass, dw[ipln] = getdw(yplane, zplane)
+        print("Synchronized Plane %i with legacy xyzts"%(plns[ipln]))
+
+        udw = extractMean(dwclass,plnmask,umean)
+        vdw = extractMean(dwclass,plnmask,vmean)
+        wdw = extractMean(dwclass,plnmask,wmean)
+
+        gradpdwx = extractMean(dwclass,plnmask,gradpmean[:,0])
+        gradpdwy = extractMean(dwclass,plnmask,gradpmean[:,1])
+        gradpdwz = extractMean(dwclass,plnmask,gradpmean[:,2])
+
+        uprime, vprime, wprime, dt = extractfluct(probedata,\
+                    plnmask,dwclass,\
+                    udw,vdw,wdw)
+        
+        gradpprime = extractgradpressfluct(probedata,\
+                    plnmask,dwclass,\
+                    gradpdwx,gradpdwy,gradpdwz)
+
+        velPressStrainTensor[ipln] = extractVelPressTensor(dwclass,\
+                                    uprime, vprime, wprime,\
+                                    gradpprime, dt)
+    
+    dw = np.array(dw)
+    velPressStrainTensor = np.array(velPressStrainTensor)
+
+    print('Creating Plots Now')
+
+    plotMultiPlane('PI','$\Pi$',\
+                   xplns,plns,dw,\
+                   0.5*(velPressStrainTensor[:,0,:]+\
+                        velPressStrainTensor[:,1,:]+\
+                        velPressStrainTensor[:,2,:])\
+                   /(math.pow(inp.utau,4)/(inp.mu/inp.rho)),1)
+
+    for ipln in range(dw.shape[0]):
+        fname=inp.cwd+'/legacyData/gradPressExtracts_plane_'+\
+               str(plns[ipln])+'.csv'
+        stack = np.column_stack((dw[ipln],\
+                velPressStrainTensor[ipln,0,:],velPressStrainTensor[ipln,1,:],\
+                velPressStrainTensor[ipln,2,:],velPressStrainTensor[ipln,3,:],\
+                velPressStrainTensor[ipln,4,:],velPressStrainTensor[ipln,5,:]))
+
+        head='dwall,Pixx,Pinn,Pitt,Pixn,Pixt,Pint'
+        np.savetxt(fname,stack,header=head,delimiter=',')
+    
     return

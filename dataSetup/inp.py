@@ -44,6 +44,9 @@ extract = int(inp.get('extract',1))
 nhom = int(inp.get('nhom',80))
 legacyPlot = int(inp.get('legacyPlot',0))
 nplot = int(inp.get('nplot',1))
+rotate = int(inp.get('Rotate',1))
+
+print(rotate)
 
 tempstr = "--------> "
 
@@ -81,6 +84,8 @@ if(extract == 1):
     nvar = 3
 elif(extract == 2):
     nvar = 13
+elif(extract == 3):
+    nvar = 6
 #    Coordinates and time
 nvar += 4
 print(tempstr+"Number of variables = ",nvar)
