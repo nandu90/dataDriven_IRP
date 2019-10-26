@@ -94,6 +94,46 @@ def main():
                 header=head)
         print('Saved Reynolds Stresses')
 
+        bij = np.zeros((inp.nprobes,6))
+        TKE = funcs.getmean(0.5*(uprime*uprime+vprime*vprime+\
+                            wprime*wprime),probedata[:,:,0])
+        for i in range(6):
+            bij[:,i] = Rstress[:,i]/(2.0*TKE)
+
+        bij[:,0:3] = bij[:,0:3] - 1./3.
+
+        print('Extracted Normalized Anisotropy Tensor')
+
+        fname = inp.cwd+'/output/anisotropy.csv'
+        head = 'b11,b22,b33,b12,b13,b23'
+        np.savetxt(fname,np.column_stack((bij[:,0],bij[:,1],\
+                        bij[:,2],bij[:,3],\
+                        bij[:,4],bij[:,5])),delimiter=',',\
+                header=head)
+        print('Saved Anisotropy Tensor')
+
+        eta = np.zeros(inp.nprobes)
+        xi = np.zeros(inp.nprobes)
+
+        for i in range(inp.nprobes):
+            mat = np.matrix([[bij[i,0],bij[i,3],bij[i,4]],\
+                             [bij[i,3],bij[i,1],bij[i,5]],\
+                             [bij[i,4],bij[i,5],bij[i,2]]])
+            mat2 = np.matmul(mat,mat)
+            trmat = mat[0,0]+mat[1,1]+mat[2,2]
+            trmat2 = mat2[0,0]+mat2[1,1]+mat2[2,2]
+            II = 0.5*(trmat**2. - trmat2)
+            III = np.linalg.det(mat)
+            eta[i] = math.sqrt((-1./3.)*II)
+            xi[i] = funcs.cubic_root((1./2.)*III)
+                   
+        fname = inp.cwd+'/output/lumley.csv'
+        head = 'eta,xi'
+        np.savetxt(fname,np.column_stack((eta,xi)),delimiter=',',header=head)
+        print('Saved Invariants')
+
+        
+
     elif(inp.extract == 2):
         # Read the already extracted Reynolds Stresses
         Rstress = np.zeros((inp.nprobes,6))

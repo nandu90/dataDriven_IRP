@@ -13,6 +13,8 @@ import matplotlib.ticker as ticker
 import os
 import time
 
+def cubic_root(x):
+    return math.copysign(math.pow(abs(x),1./3.),x)
 
 def pow_with_nan(x,y):
     try:
@@ -69,8 +71,8 @@ def plotnow(fname,ylabel,data,yplus,axistype=0):
 
     markers = ['','','.','']
     labels = ['$Re_{\\tau}180 (Moser)$',\
-              '${Re_\\tau}550 (Moser)$','$Re_{\\tau}340 (PHASTA)$',\
-              '$Re_{\\tau}800$ (Jun et al, 2015)']
+              '${Re_\\tau}550 (Moser)$','$Re_{\\tau}170 (PHASTA)$',\
+              '$Re_{\\tau}400$ (Jun et al, 2015)']
 
     
     for i in range(len(data)):
@@ -190,7 +192,7 @@ def readMoserFluct(fname):
                          [b13[i],b23[i],b33[i]]])
         eig = np.linalg.eigvals(mat)
         eta[i] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
-        xi[i] = pow_with_nan(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.,1./3.)
+        xi[i] = cubic_root(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.)
 
     
     return yplus.tolist(), Rxx.tolist(), Rnn.tolist(), Rtt.tolist(),\
@@ -248,7 +250,7 @@ def myLegacyData():
                          [b13[i],b23[i],b33[i]]])
         eig = np.linalg.eigvals(mat)
         eta[i] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
-        xi[i] = pow_with_nan(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.,1./3.)
+        xi[i] = cubic_root(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.)
 
     zeromask = np.where(xi != 0.0, True, False)
     eta = eta[zeromask]
@@ -347,7 +349,7 @@ def main():
     plotnow('TKE','$TKE$',TKE,yplus,1)
 
     plotnow('anisotropy','$\eta$',eta,xi,1)
-    """
+    
     # Get TKE Budget Moser
     yplus = [[]]*3
     production = [[]]*3
@@ -462,7 +464,7 @@ def main():
     plotnow('production_uv','$P_{un}$',production,yplus,1)
     plotnow('dissipation_uv','$\epsilon_{un}$',dissipation,yplus,1)
     plotnow('pressStrain_uv','$R_{un}$',pstrain,yplus,1)
-    """
+    '''
     # Get the velocity-pressure-gradient tensor
     Pidata = myLegacyPiData()
     yplus = [[]]*1
@@ -501,7 +503,7 @@ def main():
     Pixn[0] = (Pidata[:,4]).tolist()
     plotnow('Pitrace_xn','$\Pi_{xn}$',Pixn,yplus)
     plotnow('Pitrace_xn','$\Pi_{xn}$',Pixn,yplus,1)
-    
+    '''
     return
 
 if __name__ == "__main__":

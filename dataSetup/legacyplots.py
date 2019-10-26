@@ -12,14 +12,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from mpl_toolkits.mplot3d import Axes3D
 import inp
+import funcs
 
-
-def pow_with_nan(x,y):
-    try:
-        return math.pow(x,y)
-    except ValueError:
-        #return float('nan')
-        return 0.0
 
 def extractPlane(plnindex,plnindices,data,y,z,fname,ylabel):
 
@@ -273,7 +267,7 @@ def extractTKE(uprime,vprime,wprime,dt,dwclass):
         xi[iclass] = math.pow(bij[0,iclass],3.)+\
                      math.pow(bij[1,iclass],3.)+\
                      math.pow(bij[2,iclass],3.)
-        new = pow_with_nan(xi[iclass]/6.0,1./3.)
+        new = funcs.cubic_root(xi[iclass]/6.0)
         xi[iclass] = new
         
         mat = np.matrix([[bij[0,iclass],bij[3,iclass],bij[4,iclass]],\
@@ -281,7 +275,7 @@ def extractTKE(uprime,vprime,wprime,dt,dwclass):
                          [bij[4,iclass],bij[5,iclass],bij[2,iclass]]])
         eig = np.linalg.eigvals(mat)
         eta[iclass] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
-        xi[iclass] = pow_with_nan(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.,1./3.)
+        xi[iclass] = funcs.cubic_root(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.)
         print(eta[iclass],xi[iclass])
     return TKE, Rstress, bij, xi, eta
 

@@ -9,6 +9,16 @@ import os
 import inp
 import numpy.testing as npt
 
+def pow_with_nan(x,y):
+    try:
+        return math.pow(x,y)
+    except ValueError:
+        #return float('nan')
+        return 0.0
+
+def cubic_root(x):
+    return math.copysign(math.pow(abs(x),1./3.),x)
+
 def readvarts(fname):
     probedata = np.zeros([inp.nsteps,inp.nprobes,inp.nvar])
     readata = np.zeros([inp.nsteps,inp.nprobes,28])
