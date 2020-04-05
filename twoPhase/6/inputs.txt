@@ -1,1 +1,25 @@
-/home/nsaini3/CASES/summer2019/twoPhase/6/inputs.txt
+# Varts File processing related inputs
+inistep 25000
+laststep 29500
+nPHASTAprobes 85069
+nrun 1
+nprobes 84889
+nsteps 100
+
+# Geometry related
+pitch 0.0063
+rrod 0.00457
+
+# Turbulence Related
+Re 5000
+Um 7.169
+rho 0.914482
+mu 17.0141E-6
+
+# Processing related
+legacyPlot 0
+plttype 1d
+extract 1
+nhom 80
+nplot 30
+Rotate 0
