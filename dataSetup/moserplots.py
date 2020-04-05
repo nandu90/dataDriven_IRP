@@ -51,8 +51,7 @@ def readJunDataU():
     return yplus, umean    
 
 def plotnow(fname,ylabel,data,yplus,axistype=0):
-    default_cycler = (cycler(color=['b','r','k','m','g'])*\
-                      cycler(linestyle=['-'])*cycler(marker=['.']))
+    default_cycler = (cycler(color=['b','r','k','m']))
 
     name = fname
     plt.rc('lines',linewidth=1)
@@ -70,9 +69,10 @@ def plotnow(fname,ylabel,data,yplus,axistype=0):
     ax.set_ylabel(ylabel,fontsize=20)
 
     markers = ['','','.','']
-    labels = ['$Re_{\\tau}180 (Moser)$',\
-              '${Re_\\tau}550 (Moser)$','$Re_{\\tau}170 (PHASTA)$',\
-              '$Re_{\\tau}400$ (Jun et al, 2015)']
+    labels = ['$Re_{\\tau}180$ (Moser)',\
+              '$Re_{\\tau}550$ (Moser)',\
+              '$Re_{\\tau}230$ (PHASTA)',\
+              '$Re_{\\tau}400$ (Fang)']
 
     
     for i in range(len(data)):
@@ -80,24 +80,24 @@ def plotnow(fname,ylabel,data,yplus,axistype=0):
             ax.semilogx(yplus[i],data[i],label=labels[i],marker=markers[i])     
         else:
             ax.plot(yplus[i],data[i],label=labels[i],marker=markers[i])
-    
+    '''
     if(fname == 'TKE'):
         juny, junTKE = readJunData()
         if(axistype == 0):
-            ax.semilogx(juny,junTKE,label=labels[3],\
-                        marker=markers[3])
+            ax.semilogx(juny,junTKE,label=labels[-1],\
+                        marker=markers[-1])
         else:
-            ax.plot(juny,junTKE,label=labels[3],\
-                    marker=markers[3])
+            ax.plot(juny,junTKE,label=labels[-1],\
+                    marker=markers[-1])
     elif(fname == 'U'):
         juny, junU = readJunDataU()
         if(axistype == 0):
-            ax.semilogx(juny,junU,label=labels[3],\
-                        marker=markers[3])
+            ax.semilogx(juny,junU,label=labels[-1],\
+                        marker=markers[-1])
         else:
-            ax.plot(juny,junU,label=labels[3],\
-                    marker=markers[3])
-
+            ax.plot(juny,junU,label=labels[-1],\
+                    marker=markers[-1])
+    '''
     if(name == 'anisotropy'):
         x = np.linspace(0,1./3.,num=100)
         y = x
@@ -141,11 +141,13 @@ def readMoservel(fname):
     P = data[:,5]
 
     U = U[yplus<300]
+    W = W[yplus<300]
     yplus = yplus[yplus<300]
 
     U = U[yplus>0.1]
+    W = W[yplus>0.1]
     yplus = yplus[yplus>0.1]
-    return yplus.tolist(), U.tolist()
+    return yplus.tolist(), U.tolist(), W.tolist()
 
 def readMoserFluct(fname):
     data =np.loadtxt(fname,comments='%')
@@ -194,9 +196,15 @@ def readMoserFluct(fname):
         eta[i] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
         xi[i] = cubic_root(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.)
 
-    
-    return yplus.tolist(), Rxx.tolist(), Rnn.tolist(), Rtt.tolist(),\
-        TKE.tolist(), eta.tolist(), xi.tolist()
+    R = np.zeros((6,Rxx.shape[0]))
+    R[0,:] = Rxx
+    R[1,:] = Rnn
+    R[2,:] = Rtt
+    R[3,:] = Rxn
+    R[4,:] = Rxt
+    R[5,:] = Rnt
+    return yplus.tolist(), TKE.tolist(), eta.tolist(), xi.tolist(), R
+
 
 def readMoserbudget(fname):
     data =np.loadtxt(fname,comments='%')
@@ -299,58 +307,98 @@ def main():
     
     # Get your extracted data
     simData, myeta, myxi = myLegacyData()
-    gradData = myLegacyGradData()
+    #gradData = myLegacyGradData()
 
     # Get mean Velocities Moser
-    yplus = [[]]*3
-    U = [[]]*3
+    moser = 2+1
+    yplus = [[]]*moser
+    U = [[]]*moser
+    W = [[]]*moser
+    V = [[]]
     print('Reading mean velocities')
     fname = 'Re180/LM_Channel_0180_mean_prof.dat'
-    yplus[0], U[0] = readMoservel(fname)
+    yplus[0], U[0], W[0] = readMoservel(fname)
     fname = 'Re550/LM_Channel_0550_mean_prof.dat'
-    yplus[1], U[1] = readMoservel(fname)
+    yplus[1], U[1], W[1] = readMoservel(fname)
     
-    yplus[2] = simData[:,0].tolist()
-    U[2] = simData[:,1].tolist()
+    yplus[-1] = simData[:,0].tolist()
+    U[-1] = simData[:,1].tolist()
+    W[-1] = simData[:,3].tolist()
+    V[-1] = simData[:,2].tolist()
 
+    
     plotnow('U','$U^+$',U,yplus)
     plotnow('U','$U^+$',U,yplus,1)
+    plotnow('W','$W^+$',W,yplus)
+    plotnow('W','$W^+$',W,yplus,1)
 
+    yp = [yplus[-1]]
+    plotnow('V','$V^+$',V,yp)
+    plotnow('V','$V^+$',V,yp,1)
+    
 
     # Get Fluctuations Moser 
-    yplus = [[]]*3
-    Rxx = [[]]*3
-    Rnn = [[]]*3
-    Rtt = [[]]*3
-    TKE = [[]]*3
-    eta = [[]]*3
-    xi = [[]]*3
+    yplus = [[]]*moser
+    Rxx = [[]]*moser
+    Rnn = [[]]*moser
+    Rtt = [[]]*moser
+    TKE = [[]]*moser
+    eta = [[]]*moser
+    xi = [[]]*moser
+    Rxn = [[]]*moser
+    Rxt = [[]]*moser
+    Rnt = [[]]*moser
+
     print('Reading Reynolds Stresses')
     fname = 'Re180/LM_Channel_0180_vel_fluc_prof.dat'
-    yplus[0], Rxx[0], Rnn[0], Rtt[0], TKE[0], eta[0], xi[0] = readMoserFluct(fname)
+    yplus[0], TKE[0], eta[0], xi[0], R = readMoserFluct(fname)
+    Rxx[0] = R[0,:].tolist()
+    Rnn[0] = R[1,:].tolist()
+    Rtt[0] = R[2,:].tolist()
+    Rxn[0] = R[3,:].tolist()
+    Rxt[0] = R[4,:].tolist()
+    Rnt[0] = R[5,:].tolist()
+
     fname = 'Re550/LM_Channel_0550_vel_fluc_prof.dat'
-    yplus[1], Rxx[1], Rnn[1], Rtt[1], TKE[1], eta[1], xi[1] = readMoserFluct(fname)
+    yplus[1], TKE[1], eta[1], xi[1], R = readMoserFluct(fname)
+    Rxx[1] = R[0,:].tolist()
+    Rnn[1] = R[1,:].tolist()
+    Rtt[1] = R[2,:].tolist()
+    Rxn[1] = R[3,:].tolist()
+    Rxt[1] = R[4,:].tolist()
+    Rnt[1] = R[5,:].tolist()
     
-    yplus[2] = simData[:,0].tolist()
-    Rxx[2] = simData[:,4].tolist()
-    Rnn[2] = simData[:,5].tolist()
-    Rtt[2] = simData[:,6].tolist()
-    TKE[2] = simData[:,10].tolist()
-    eta[2] = myeta.tolist()
-    xi[2] = myxi.tolist()
-    
+    yplus[-1] = simData[:,0].tolist()
+    Rxx[-1] = simData[:,4].tolist()
+    Rnn[-1] = simData[:,5].tolist()
+    Rtt[-1] = simData[:,6].tolist()
+    TKE[-1] = simData[:,10].tolist()
+    eta[-1] = myeta.tolist()
+    xi[-1] = myxi.tolist()
+
+    Rxn[-1] = simData[:,7].tolist()
+    Rxt[-1] = simData[:,8].tolist()
+    Rnt[-1] = simData[:,9].tolist()
+
     plotnow('Rxx','$R_{xx}$',Rxx,yplus)
     plotnow('Rnn','$R_{nn}$',Rnn,yplus)
     plotnow('Rtt','$R_{tt}$',Rtt,yplus)
+    plotnow('Rxn','$R_{xn}$',Rxn,yplus)
+    plotnow('Rxt','$R_{xt}$',Rxt,yplus)
+    plotnow('Rnt','$R_{nt}$',Rnt,yplus)
     plotnow('TKE','$TKE$',TKE,yplus)
     plotnow('Rxx','$R_{xx}$',Rxx,yplus,1)
     plotnow('Rnn','$R_{nn}$',Rnn,yplus,1)
     plotnow('Rtt','$R_{tt}$',Rtt,yplus,1)
+    plotnow('Rxn','$R_{xn}$',Rxn,yplus,1)
+    plotnow('Rxt','$R_{xt}$',Rxt,yplus,1)
+    plotnow('Rnt','$R_{nt}$',Rnt,yplus,1)
     plotnow('TKE','$TKE$',TKE,yplus,1)
 
     plotnow('anisotropy','$\eta$',eta,xi,1)
     
     # Get TKE Budget Moser
+    '''
     yplus = [[]]*3
     production = [[]]*3
     dissipation = [[]]*3
@@ -464,6 +512,8 @@ def main():
     plotnow('production_uv','$P_{un}$',production,yplus,1)
     plotnow('dissipation_uv','$\epsilon_{un}$',dissipation,yplus,1)
     plotnow('pressStrain_uv','$R_{un}$',pstrain,yplus,1)
+    '''
+
     '''
     # Get the velocity-pressure-gradient tensor
     Pidata = myLegacyPiData()

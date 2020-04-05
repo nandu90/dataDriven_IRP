@@ -22,6 +22,7 @@ with open("inputs.txt") as f:
 
 
 cwd = os.getcwd()
+print(cwd)
 
 inistep = int(inp.get('inistep',0))
 laststep = int(inp.get('laststep',100))

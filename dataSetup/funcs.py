@@ -52,8 +52,8 @@ def readvarts(fname):
 
 def coordRotation(y, z, v, w):
     
-    tan = np.zeros(v.shape)
-    norm = np.zeros(v.shape)
+    tan = np.zeros(v.shape[1])
+    norm = np.zeros(v.shape[1])
 
     """
     magorig = np.zeros(v.shape)
@@ -94,7 +94,7 @@ def coordRotation(y, z, v, w):
         magorig[:,i] = np.sqrt(np.power(v[:,i],2)+np.power(w[:,i],2))
         magnew[:,i] = np.sqrt(np.power(norm[:,i],2)+np.power(tan[:,i],2))
     """
-    magorig = np.sqrt(np.power(v,2)+np.power(w,2))
+    #magorig = np.sqrt(np.power(v,2)+np.power(w,2))
     # Linear transformation
     ynew = y[0,:] - np.sign(y[0,:])*(inp.pitch/2.0)
     znew = z[0,:] - np.sign(z[0,:])*(inp.pitch/2.0)
@@ -102,16 +102,21 @@ def coordRotation(y, z, v, w):
     # Angle
     theta = np.arctan2(znew,ynew)
 
+    print('Vector shape',v.shape[0])
     # Rotation
     for i in range(v.shape[0]):
-        norm[i,:] = v[i,:]*np.cos(theta) - w[i,:]*np.sin(theta)
-        tan[i,:] = v[i,:]*np.sin(theta) + w[i,:]*np.cos(theta)
-    
-    magnew = np.sqrt(np.power(norm,2)+np.power(tan,2))
-    
-    npt.assert_almost_equal(magorig,magnew,decimal=9)
+        norm = v[i,:]*np.cos(theta) - w[i,:]*np.sin(theta)
+        tan = v[i,:]*np.sin(theta) + w[i,:]*np.cos(theta)
+        v[i,:] = norm[:]
+        w[i,:] = tan[:]
+        if(i%100 == 0):
+            print('Rotated',i)
 
-    return norm, tan
+    #magnew = np.sqrt(np.power(norm,2)+np.power(tan,2))
+    
+    #npt.assert_almost_equal(magorig,magnew,decimal=9)
+
+    return
 
 
 def rotateVectors(probedata):
@@ -120,8 +125,8 @@ def rotateVectors(probedata):
 
     #    Velocities
     if(inp.extract == 1):
-        probedata[:,:,5], probedata[:,:,6] = coordRotation(y, z,\
-                                probedata[:,:,5], probedata[:,:,6])
+        coordRotation(y, z,\
+                      probedata[:,:,5], probedata[:,:,6])
     elif(inp.extract == 2):
         probedata[:,:,7], probedata[:,:,10] = coordRotation(y, z,\
                                 probedata[:,:,7], probedata[:,:,10])
@@ -140,11 +145,13 @@ def rotateVectors(probedata):
         probedata[:,:,8], probedata[:,:,9] = coordRotation(y, z,\
                                 probedata[:,:,8], probedata[:,:,9])
 
-    return probedata
+
+    print('Exiting Rotate Vectors')
+    return
 
 
-def getmean(data,tarray):
+def getmean(data,tarray,mean):
     totaltime = np.sum(tarray[:,0], axis = 0)
-    arrmean = np.divide(np.sum(np.multiply(data, tarray), axis=0),totaltime)
-    return arrmean
+    mean[:] = np.divide(np.sum(np.multiply(data, tarray), axis=0),totaltime)
+    return
 

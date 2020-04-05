@@ -163,6 +163,7 @@ def getdw(yplane,zplane):
     dwclass = getdwclass(yplane, zplane)   
     nclass = np.amax(dwclass)
     dw = np.zeros(nclass)
+    
 
     for iclass in range(nclass):
         dwmask = np.where(dwclass == iclass+1, True, False)
@@ -172,6 +173,7 @@ def getdw(yplane,zplane):
                 +np.power(np.abs(ztemp)-inp.pitch,2))-inp.rrod    
         dw[iclass] = np.mean(dwtemp)
 
+        
     return dwclass, dw
 
 def getdwclass(yplane, zplane):
@@ -179,11 +181,13 @@ def getdwclass(yplane, zplane):
     coord = np.loadtxt("xyzts.dat",skiprows=1)
     yx = coord[:,1]
     zx = coord[:,2]
-    
+
+    print(yx.shape)
+
     for ihom in range(inp.nhom):
         ysub = yx[ihom::inp.nhom]
         zsub = zx[ihom::inp.nhom]
-        
+                
         for i in range(ysub.shape[0]):
             for j in range(yplane.shape[0]):
                 if(dwclass[j] == 0):
@@ -276,7 +280,7 @@ def extractTKE(uprime,vprime,wprime,dt,dwclass):
         eig = np.linalg.eigvals(mat)
         eta[iclass] = math.sqrt((eig[0]**2.+eig[0]*eig[1]+eig[1]**2.)/3.)
         xi[iclass] = funcs.cubic_root(-(eig[0]*eig[1]*(eig[0]+eig[1]))/2.)
-        print(eta[iclass],xi[iclass])
+        #print(eta[iclass],xi[iclass])
     return TKE, Rstress, bij, xi, eta
 
 
@@ -323,25 +327,27 @@ def extractPlots(plnindices,xplns,y,z,probedata,umean,vmean,wmean):
     xi = np.array(xi)
     eta = np.array(eta)
     
-    print("Creating (Legacy) Plots Now")
-    plotMultiPlane('Umean','$U^+$',xplns,plns,dw,udw/inp.utau,1)
-    plotMultiPlane('Vmean','$V^+$',xplns,plns,dw,vdw/inp.utau,1)
-    plotMultiPlane('Wmean','$W^+$',xplns,plns,dw,wdw/inp.utau,1)
-    plotMultiPlane('TKE','$TKE$',xplns,plns,dw,TKE/math.pow(inp.utau,2),1)
+    #print("Creating (Legacy) Plots Now")
+    #plotMultiPlane('Umean','$U^+$',xplns,plns,dw,udw/inp.utau,1)
+    #plotMultiPlane('Vmean','$V^+$',xplns,plns,dw,vdw/inp.utau,1)
+    #plotMultiPlane('Wmean','$W^+$',xplns,plns,dw,wdw/inp.utau,1)
+    #plotMultiPlane('TKE','$TKE$',xplns,plns,dw,TKE/math.pow(inp.utau,2),1)
 
-    plotMultiPlane('Rxx','$R_{xx}$',xplns,plns,dw,Rstress[:,0,:]/math.pow(inp.utau,2),1)
-    plotMultiPlane('Rnn','$R_{nn}$',xplns,plns,dw,Rstress[:,1,:]/math.pow(inp.utau,2),1)
-    plotMultiPlane('Rtt','$R_{tt}$',xplns,plns,dw,Rstress[:,2,:]/math.pow(inp.utau,2),1)
-    plotMultiPlane('Rxn','$R_{xn}$',xplns,plns,dw,Rstress[:,3,:]/math.pow(inp.utau,2),1)
-    plotMultiPlane('Rxt','$R_{xt}$',xplns,plns,dw,Rstress[:,4,:]/math.pow(inp.utau,2),1)
-    plotMultiPlane('Rnt','$R_{nt}$',xplns,plns,dw,Rstress[:,5,:]/math.pow(inp.utau,2),1)
+    #plotMultiPlane('Rxx','$R_{xx}$',xplns,plns,dw,Rstress[:,0,:]/math.pow(inp.utau,2),1)
+    #plotMultiPlane('Rnn','$R_{nn}$',xplns,plns,dw,Rstress[:,1,:]/math.pow(inp.utau,2),1)
+    #plotMultiPlane('Rtt','$R_{tt}$',xplns,plns,dw,Rstress[:,2,:]/math.pow(inp.utau,2),1)
+    #plotMultiPlane('Rxn','$R_{xn}$',xplns,plns,dw,Rstress[:,3,:]/math.pow(inp.utau,2),1)
+    #plotMultiPlane('Rxt','$R_{xt}$',xplns,plns,dw,Rstress[:,4,:]/math.pow(inp.utau,2),1)
+    #plotMultiPlane('Rnt','$R_{nt}$',xplns,plns,dw,Rstress[:,5,:]/math.pow(inp.utau,2),1)
 
-    plotMultiPlane('anisotropy','$\\eta$',xplns,plns,xi,eta,1)
+    #plotMultiPlane('anisotropy','$\\eta$',xplns,plns,xi,eta,1)
     
     # with open('compare.txt','w') as f:
     #     for i in range(dw.shape[1]):
     #         f.write('%.6e %.6e %.6e %.6e %.6e\n'%(dw[0][i],udw[0][i],vdw[0][i],wdw[0][i],TKE[0][i]))
 
+    print(dw.shape)
+    print('Writing Legacy data')
     for ipln in range(dw.shape[0]):
         fname = inp.cwd+'/legacyData/velExtracts_plane_'+str(plns[ipln])+'.csv'
         stack = np.column_stack((dw[ipln],udw[ipln],vdw[ipln],wdw[ipln],\
