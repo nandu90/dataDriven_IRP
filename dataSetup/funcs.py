@@ -19,8 +19,21 @@ def pow_with_nan(x,y):
 def cubic_root(x):
     return math.copysign(math.pow(abs(x),1./3.),x)
 
+def createplnmask(data):
+    x = data[:,25]
+    xplns, plnindices, plncount = np.unique(x,return_inverse=True,\
+                                            return_counts=True)
+    print('Number of identified x-planes: ',xplns.shape[0])
+
+    inp.plnindices.append(plnindices)
+    
+    inp.npl = plncount[inp.nplot]
+    print('Number of probes on plane: ',inp.npl)
+
+    return
+
 def readvarts(fname):
-    probedata = np.zeros([inp.nsteps,inp.nprobes,inp.nvar])
+    
     readata = np.zeros([inp.nsteps,inp.nprobes,28])
 
     with open(fname,'r') as fobj:
@@ -28,24 +41,27 @@ def readvarts(fname):
             pos = istep*inp.nprobes*28*8
             readata[istep] = np.memmap(fobj,dtype='>f8',\
                             mode='r',shape=(inp.nprobes,28),offset=pos)
+    if(inp.npl ==0):
+        createplnmask(readata[0,:,:])
+    probedata = np.zeros([inp.nsteps,inp.npl,20])
 
     for istep in range(inp.nsteps):
+        ip=0
         for iprobe in range(inp.nprobes):
-            if(inp.extract == 1):
-                probedata[istep,iprobe,0] = readata[istep,iprobe,4]
-                probedata[istep,iprobe,1:4] = readata[istep,iprobe,25:28]
-                probedata[istep,iprobe,4:7] = readata[istep,iprobe,1:4]
-            elif(inp.extract == 2):
-                probedata[istep,iprobe,0]=readata[istep,iprobe,4]
-                probedata[istep,iprobe,1:4]=readata[istep,iprobe,25:28]
-                probedata[istep,iprobe,4:13]=readata[istep,iprobe,6:15]
-                probedata[istep,iprobe,13:16]=readata[istep,iprobe,15:18]
-                probedata[istep,iprobe,16] = readata[istep,iprobe,0]
-            elif(inp.extract == 3):
-                probedata[istep,iprobe,0]=readata[istep,iprobe,4]
-                probedata[istep,iprobe,1:4] = readata[istep,iprobe,25:28]
-                probedata[istep,iprobe,4:7] = readata[istep,iprobe,1:4]
-                probedata[istep,iprobe,7:10]=readata[istep,iprobe,16:19]
+            if(inp.plnindices[0][iprobe] == inp.nplot):
+                probedata[istep,ip,0] = readata[istep,iprobe,4]
+                probedata[istep,ip,1:4] = readata[istep,iprobe,25:28]
+                probedata[istep,ip,4:7] = readata[istep,iprobe,1:4]
+                
+                probedata[istep,ip,7:16]=readata[istep,iprobe,6:15]
+                probedata[istep,ip,16:19]=readata[istep,iprobe,15:18]
+                probedata[istep,ip,19] = readata[istep,iprobe,0]
+                ip += 1
+                # elif(inp.extract == 3):
+                #     probedata[istep,ip,0]=readata[istep,iprobe,4]
+                #     probedata[istep,ip,1:4] = readata[istep,iprobe,25:28]
+                #     probedata[istep,ip,4:7] = readata[istep,iprobe,1:4]
+                #     probedata[istep,ip,7:10]=readata[istep,iprobe,16:19]
     return probedata
 
 

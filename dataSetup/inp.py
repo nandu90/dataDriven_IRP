@@ -47,6 +47,9 @@ legacyPlot = int(inp.get('legacyPlot',0))
 nplot = int(inp.get('nplot',1))
 rotate = int(inp.get('Rotate',1))
 
+npl=0
+plnindices = []
+
 print(rotate)
 
 tempstr = "--------> "
@@ -72,7 +75,7 @@ if(legacyPlot == 1):
     elif(plttype == '3d'):
         print(tempstr+'Making 3d plane plots')
     print(tempstr+"Number of homogeneous probes = ",nhom)
-    print(tempstr+"Number of planes to plot = ",nplot)
+    print(tempstr+"Index of plane to plot = ",nplot)
 
 
 # Some preliminary calculations

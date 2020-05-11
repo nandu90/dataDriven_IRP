@@ -429,31 +429,31 @@ def extractstrain(gradprime, dt, dwclass):
     s13t = np.sum(s13*dt,axis=0)
     s23t = np.sum(s23*dt,axis=0)
 
-    nu = inp.mu/inp.rho
-    epst = np.sum((s11*s11+s12*s12+s13*s13+\
-                   s12*s12+s22*s22+s23*s23+\
-                   s13*s13+s23*s23+s33*s33)*dt,axis=0)*2.0*nu
+#    nu = inp.mu/inp.rho
+#    epst = np.sum((s11*s11+s12*s12+s13*s13+\
+#                   s12*s12+s22*s22+s23*s23+\
+#                   s13*s13+s23*s23+s33*s33)*dt,axis=0)
 
     # epst = (s11t*s11t+s22t*s22t+s33t*s33t+\
     #         s12t*s12t+s13t*s13t+s23t*s23t)*2.0*nu
 
     Dt = np.sum(dt,axis=0)
 
-    dissipation = np.zeros(nclass)
-    strainprime = np.zeros((6,nclass))
+    #dissipation = np.zeros(nclass)
+    strainrate = np.zeros((6,nclass))
     for iclass in range(nclass):
         dwmask = np.where(dwclass == iclass+1,True,False)
         Deltat = np.sum(Dt[dwmask])
-        dissipation[iclass] = np.sum(epst[dwmask])/Deltat
+ #       dissipation[iclass] = np.sum(epst[dwmask])/Deltat
         
-        strainprime[0,iclass] = np.sum(s11t[dwmask])/Deltat
-        strainprime[1,iclass] = np.sum(s22t[dwmask])/Deltat
-        strainprime[2,iclass] = np.sum(s33t[dwmask])/Deltat
-        strainprime[3,iclass] = np.sum(s12t[dwmask])/Deltat
-        strainprime[4,iclass] = np.sum(s13t[dwmask])/Deltat
-        strainprime[5,iclass] = np.sum(s23t[dwmask])/Deltat
+        strainrate[0,iclass] = np.sum(s11t[dwmask])/Deltat
+        strainrate[1,iclass] = np.sum(s22t[dwmask])/Deltat
+        strainrate[2,iclass] = np.sum(s33t[dwmask])/Deltat
+        strainrate[3,iclass] = np.sum(s12t[dwmask])/Deltat
+        strainrate[4,iclass] = np.sum(s13t[dwmask])/Deltat
+        strainrate[5,iclass] = np.sum(s23t[dwmask])/Deltat
     
-    return strainprime, dissipation
+    return strainrate
 
 def extractDissipationTensor(gradprime, dt, dwclass):
 
@@ -500,8 +500,6 @@ def extractDissipationTensor(gradprime, dt, dwclass):
         dissipation[3,iclass] = np.sum(d12t[dwmask])/Deltat
         dissipation[4,iclass] = np.sum(d13t[dwmask])/Deltat
         dissipation[5,iclass] = np.sum(d23t[dwmask])/Deltat
-
-    dissipation = 2.0*nu*dissipation
 
     return dissipation
 
@@ -564,12 +562,12 @@ def extractPressTensor(dwclass, pressprime, gradprime, dt):
     
     nclass = np.amax(dwclass)
     
-    R11 = (gradprime[:,:,0]+gradprime[:,:,0])*pressprime/inp.rho
-    R22 = (gradprime[:,:,4]+gradprime[:,:,4])*pressprime/inp.rho
-    R33 = (gradprime[:,:,8]+gradprime[:,:,8])*pressprime/inp.rho
-    R12 = (gradprime[:,:,3]+gradprime[:,:,1])*pressprime/inp.rho
-    R13 = (gradprime[:,:,6]+gradprime[:,:,2])*pressprime/inp.rho
-    R23 = (gradprime[:,:,7]+gradprime[:,:,5])*pressprime/inp.rho
+    R11 = (gradprime[:,:,0]+gradprime[:,:,0])*pressprime
+    R22 = (gradprime[:,:,4]+gradprime[:,:,4])*pressprime
+    R33 = (gradprime[:,:,8]+gradprime[:,:,8])*pressprime
+    R12 = (gradprime[:,:,3]+gradprime[:,:,1])*pressprime
+    R13 = (gradprime[:,:,6]+gradprime[:,:,2])*pressprime
+    R23 = (gradprime[:,:,7]+gradprime[:,:,5])*pressprime
 
     R11t = np.sum(R11*dt,axis=0)
     R22t = np.sum(R22*dt,axis=0)
@@ -618,9 +616,9 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
     dpdy = [[] for i in range(len(plns))]
     dpdz = [[] for i in range(len(plns))]
 
-    strainprime = [[] for i in range(len(plns))]
-    dissipation = [[] for i in range(len(plns))]
-    production = [[] for i in range(len(plns))]
+    strainrate = [[] for i in range(len(plns))]
+#    dissipation = [[] for i in range(len(plns))]
+#    production = [[] for i in range(len(plns))]
 
     disstensor = [[] for i in range(len(plns))]
     prodtensor = [[] for i in range(len(plns))]
@@ -661,7 +659,7 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
                             dudz[ipln],dvdz[ipln],dwdz[ipln],\
                             dpdx[ipln],dpdy[ipln],dpdz[ipln])
 
-        strainprime[ipln], dissipation[ipln] = extractstrain(\
+        strainrate[ipln] = extractstrain(\
                                      gradprime, dt, dwclass)
         disstensor[ipln] = extractDissipationTensor(gradprime,\
                         dt, dwclass)
@@ -671,8 +669,8 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
                         pressprime, gradprime, dt)
         
     dw = np.array(dw)
-    dissipation = np.array(dissipation)
-    strainprime = np.array(strainprime)
+    #dissipation = np.array(dissipation)
+    strainrate = np.array(strainrate)
     Sxx = np.array(dudx)
     Snn = np.array(dvdy)
     Stt = np.array(dwdz)
@@ -683,6 +681,7 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
     prodtensor = np.array(prodtensor)
     pressStrainTensor = np.array(pressStrainTensor)
 
+    '''
     print('Creating Plots Now')
     # plotMultiPlane('dissipation','${\epsilon}(m^2/s^3)$',\
     #                xplns,plns,dw,dissipation,1)
@@ -747,12 +746,15 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
                    xplns,plns,dw,\
     (0.5*(prodtensor[:,0,:]+prodtensor[:,1,:]+prodtensor[:,2,:]))/\
     (0.5*(disstensor[:,0,:]+disstensor[:,1,:]+disstensor[:,2,:])),1)
-
+    '''
 
     for ipln in range(dw.shape[0]):
         fname = inp.cwd+'/legacyData/gradExtracts_plane_'+str(plns[ipln])+'.csv'
         stack = np.column_stack((dw[ipln],Sxx[ipln],Snn[ipln],Stt[ipln],\
                 Sxn[ipln],Sxt[ipln],Snt[ipln],\
+                strainrate[ipln,0,:],strainrate[ipln,1,:],\
+                strainrate[ipln,2,:],strainrate[ipln,3,:],\
+                strainrate[ipln,4,:],strainrate[ipln,5,:],\
                 disstensor[ipln,0,:],disstensor[ipln,1,:],\
                 disstensor[ipln,2,:],disstensor[ipln,3,:],\
                 disstensor[ipln,4,:],disstensor[ipln,5,:],\
@@ -764,6 +766,7 @@ def extractGrads(plnindices,xplns,y,z,probedata,gradmean,\
                 pressStrainTensor[ipln,4,:],pressStrainTensor[ipln,5,:]))
 
         head = 'dwall,Sxx,Snn,Stt,Sxn,Sxt,Snt'
+        head = head+',sxx,snn,stt,sxn,sxt,snt'
         head = head+',eps_xx,eps_nn,eps_tt,eps_xn,eps_xt,eps_nt'
         head = head+',P_xx,P_nn,P_tt,P_xn,P_xt,P_nt'
         head = head+',R_xx,R_nn,R_tt,R_xn,R_xt,R_nt'
